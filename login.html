@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Hệ thống Quản lý Sinh viên - Đăng nhập</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        h2 { color: #1a365d; margin-bottom: 8px; }
+        p { color: #718096; font-size: 14px; margin-bottom: 24px; }
+        input { width: 100%; padding: 12px; margin: 8px 0; box-sizing: border-box; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 14px; }
+        button { width: 100%; padding: 12px; background: #2b6cb0; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 12px; transition: background 0.2s; }
+        button:hover { background: #2c5282; }
+        #error-msg { color: #e53e3e; font-size: 14px; margin-top: 12px; min-height: 20px; }
+        .hint { color: #718096; font-size: 12px; margin-top: 16px; line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <h2>🔒 CỔNG ĐĂNG NHẬP</h2>
+    <p>Hệ thống Quản lý Đào tạo Cloud-Native</p>
+
+    <input type="email" id="email" placeholder="Email trường cấp">
+    <input type="password" id="password" placeholder="Mật khẩu">
+
+    <button onclick="handleLogin()">Đăng Nhập</button>
+
+    <div id="error-msg"></div>
+    <p class="hint">Tài khoản do Phòng Đào tạo cấp.<br>Liên hệ quản trị viên nếu chưa có tài khoản.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase-config.js"></script>
+<script>
+    async function handleLogin() {
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const errorDiv = document.getElementById('error-msg');
+        errorDiv.innerText = '';
+
+        if (!email || !password) {
+            errorDiv.innerText = 'Vui lòng nhập email và mật khẩu.';
+            return;
+        }
+
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+        if (error) {
+            errorDiv.innerText = error.message.includes('Email not confirmed')
+                ? 'Email chưa được xác nhận. Liên hệ quản trị viên.'
+                : 'Sai email hoặc mật khẩu!';
+            return;
+        }
+
+        if (data.session) {
+            chuyenHuongTheoEmail(email);
+        }
+    }
+</script>
+
+</body>
+</html>

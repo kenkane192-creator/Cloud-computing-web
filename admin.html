@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Trang Quản trị - Admin</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; background-color: #f4f7f6; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h2 { color: #c53030; border-bottom: 2px solid #c53030; padding-bottom: 10px; }
+        .form-group { background: #fdf2f2; padding: 15px; margin-bottom: 15px; border-radius: 6px; border-left: 5px solid #c53030; }
+        .form-group.blue { background: #ebf8ff; border-left-color: #2b6cb0; }
+        input, select { padding: 8px; margin: 5px; width: 200px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 8px 15px; background: #c53030; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #9b2c2c; }
+        button.btn-blue { background: #2b6cb0; }
+        button.btn-blue:hover { background: #2c5282; }
+        button.btn-green { background: #38a169; }
+        button.btn-green:hover { background: #2f855a; }
+        .btn-logout { background: #718096; float: right; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #feebc8; color: #c05621; }
+        #api-error { color: #e53e3e; margin-bottom: 12px; display: none; }
+        .account-msg { margin-top: 8px; font-size: 14px; min-height: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <button class="btn-logout" onclick="dangXuat()">Đăng xuất</button>
+    <h2>🛠️ BÀN ĐIỀU KHIỂN CỦA ADMIN</h2>
+    <p>Quản lý danh mục và cấp tài khoản cho Giảng viên / Sinh viên.</p>
+    <p style="color:#718096;font-size:13px;">Chỉ Admin mới thấy form cấp tài khoản. Không cần service role key — dùng anon key an toàn.</p>
+    <div id="api-error"></div>
+
+    <div class="form-group blue">
+        <h3>1. Cấp tài khoản Giảng viên</h3>
+        <input type="email" id="gvEmail" placeholder="Email (bắt đầu bằng gv)">
+        <input type="password" id="gvPassword" placeholder="Mật khẩu">
+        <button class="btn-blue" onclick="taoTaiKhoanGV()">Tạo tài khoản GV</button>
+        <div id="gv-msg" class="account-msg"></div>
+    </div>
+
+    <div class="form-group blue">
+        <h3>2. Cấp tài khoản Sinh viên</h3>
+        <input type="text" id="svMa" placeholder="Mã sinh viên">
+        <input type="text" id="svTen" placeholder="Họ và tên">
+        <input type="email" id="svEmail" placeholder="Email đăng nhập">
+        <input type="password" id="svPassword" placeholder="Mật khẩu">
+        <button class="btn-green" onclick="taoTaiKhoanSV()">Tạo tài khoản SV</button>
+        <div id="sv-msg" class="account-msg"></div>
+    </div>
+
+    <div class="form-group">
+        <h3>3. Quản lý Chuyên Ngành</h3>
+        <input type="text" id="tenChuyenNganh" placeholder="Tên chuyên ngành (VD: CNTT)">
+        <button onclick="themChuyenNganh()">Thêm Chuyên Ngành</button>
+        <table>
+            <thead><tr><th>ID</th><th>Tên Chuyên Ngành</th></tr></thead>
+            <tbody id="tblChuyenNganh"></tbody>
+        </table>
+    </div>
+
+    <div class="form-group">
+        <h3>4. Quản lý Môn Học</h3>
+        <input type="text" id="tenMonHoc" placeholder="Tên môn học (VD: Điện toán đám mây)">
+        <button onclick="themMonHoc()">Thêm Môn Học</button>
+        <table>
+            <thead><tr><th>ID</th><th>Tên Môn Học</th></tr></thead>
+            <tbody id="tblMonHoc"></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase-config.js"></script>
+<script src="common.js"></script>
+<script>
+    window.onload = async function() {
+        const session = await yeuCauPhien('admin');
+        if (!session) return;
+        taiChuyenNganh();
+        taiMonHoc();
+    };
+
+    function taoSupabaseTam() {
+        const { createClient } = supabase;
+        return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+        });
+    }
+
+    async function taoTaiKhoanGV() {
+        const email = document.getElementById('gvEmail').value.trim();
+        const password = document.getElementById('gvPassword').value;
+        const msg = document.getElementById('gv-msg');
+        msg.style.color = '#276749';
+        msg.innerText = 'Đang tạo...';
+
+        try {
+            if (!email.startsWith('gv')) {
+                throw new Error('Email giảng viên phải bắt đầu bằng "gv"');
+            }
+
+            const tam = taoSupabaseTam();
+            const { data, error } = await tam.auth.signUp({ email, password });
+
+            if (error) {
+                if (error.message.includes('rate limit')) {
+                    throw new Error('Supabase giới hạn gửi email. Tắt "Confirm email" tại Supabase → Authentication → Email.');
+                }
+                if (error.message.includes('already registered')) {
+                    throw new Error('Email đã được đăng ký trước đó.');
+                }
+                throw new Error(error.message);
+            }
+
+            msg.innerText = 'Tạo tài khoản GV thành công: ' + data.user.email +
+                (data.session ? ' (có thể đăng nhập ngay)' : ' (cần xác nhận email nếu bật Confirm email)');
+            document.getElementById('gvEmail').value = '';
+            document.getElementById('gvPassword').value = '';
+        } catch (e) {
+            msg.style.color = '#e53e3e';
+            msg.innerText = e.message;
+        }
+    }
+
+    async function taoTaiKhoanSV() {
+        const ma_sv = document.getElementById('svMa').value.trim();
+        const ho_ten = document.getElementById('svTen').value.trim();
+        const email = document.getElementById('svEmail').value.trim();
+        const password = document.getElementById('svPassword').value;
+        const msg = document.getElementById('sv-msg');
+        msg.style.color = '#276749';
+        msg.innerText = 'Đang tạo...';
+
+        try {
+            if (email.startsWith('admin') || email.startsWith('gv')) {
+                throw new Error('Email sinh viên không hợp lệ');
+            }
+            if (!ma_sv || !ho_ten) {
+                throw new Error('Tạo sinh viên cần mã SV và họ tên');
+            }
+
+            const tam = taoSupabaseTam();
+            const { data, error } = await tam.auth.signUp({ email, password });
+
+            if (error) {
+                if (error.message.includes('rate limit')) {
+                    throw new Error('Supabase giới hạn gửi email. Tắt "Confirm email" tại Supabase → Authentication → Email.');
+                }
+                if (error.message.includes('already registered')) {
+                    throw new Error('Email đã được đăng ký trước đó.');
+                }
+                throw new Error(error.message);
+            }
+            
+            if (data.user) {
+                const { error: svError } = await supabaseClient
+                    .from('sinh_vien')
+                    .insert([{ ma_sv, ho_ten, email_dang_nhap: email, user_id: data.user.id }]);
+                if (svError) {
+                    throw new Error('Tài khoản đã tạo nhưng lưu hồ sơ SV thất bại: ' + svError.message);
+                }
+            }
+
+
+            msg.innerText = 'Tạo tài khoản SV thành công: ' + data.user.email +
+                (data.session ? ' (có thể đăng nhập ngay)' : ' (cần xác nhận email nếu bật Confirm email)');
+            document.getElementById('svMa').value = '';
+            document.getElementById('svTen').value = '';
+            document.getElementById('svEmail').value = '';
+            document.getElementById('svPassword').value = '';
+        } catch (e) {
+            msg.style.color = '#e53e3e';
+            msg.innerText = e.message;
+        }
+    }
+
+    async function taiChuyenNganh() {
+        const { data, error } = await supabaseClient.from('chuyen_nganh').select('*').order('id', { ascending: true });
+        if (error) return hienLoiApi(error, 'tải chuyên ngành');
+
+        let html = '';
+        (data || []).forEach(cn => {
+            html += `<tr><td>${cn.id}</td><td>${cn.ten_chuyen_nganh}</td></tr>`;
+        });
+        document.getElementById('tblChuyenNganh').innerHTML = html;
+    }
+
+    async function themChuyenNganh() {
+        const ten = document.getElementById('tenChuyenNganh').value.trim();
+        if (!ten) return alert('Vui lòng nhập tên!');
+        const { error } = await supabaseClient.from('chuyen_nganh').insert([{ ten_chuyen_nganh: ten }]);
+        if (error) return alert('Lỗi: ' + error.message);
+        document.getElementById('tenChuyenNganh').value = '';
+        taiChuyenNganh();
+    }
+
+    async function taiMonHoc() {
+        const { data, error } = await supabaseClient.from('mon_hoc').select('*').order('id', { ascending: true });
+        if (error) return hienLoiApi(error, 'tải môn học');
+
+        let html = '';
+        (data || []).forEach(mh => {
+            html += `<tr><td>${mh.id}</td><td>${mh.ten_mon}</td></tr>`;
+        });
+        document.getElementById('tblMonHoc').innerHTML = html;
+    }
+
+    async function themMonHoc() {
+        const ten = document.getElementById('tenMonHoc').value.trim();
+        if (!ten) return alert('Vui lòng nhập tên môn!');
+        const { error } = await supabaseClient.from('mon_hoc').insert([{ ten_mon: ten }]);
+        if (error) return alert('Lỗi: ' + error.message);
+        document.getElementById('tenMonHoc').value = '';
+        taiMonHoc();
+    }
+
+    async function dangXuat() {
+        await supabaseClient.auth.signOut();
+        window.location.href = 'login.html';
+    }
+</script>
+</body>
+</html>

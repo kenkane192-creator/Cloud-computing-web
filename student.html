@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Trang Sinh Viên - Kết Quả Học Tập</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; background-color: #f4f7f6; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h2 { color: #2b6cb0; border-bottom: 2px solid #2b6cb0; padding-bottom: 10px; }
+        .section-box { background: #ebf8ff; padding: 15px; margin-bottom: 20px; border-radius: 6px; border-left: 5px solid #2b6cb0; }
+        .btn-logout { background: #718096; float: right; padding: 8px 15px; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-logout:hover { background: #4a5568; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #bee3f8; color: #2b6cb0; }
+        .welcome-text { font-size: 18px; font-weight: bold; color: #2d3748; margin-bottom: 15px; }
+        #api-error { color: #e53e3e; margin-bottom: 12px; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <button class="btn-logout" onclick="dangXuat()">Đăng xuất</button>
+    <h2>🎓 CỔNG THÔNG TIN SINH VIÊN</h2>
+    <div id="api-error"></div>
+    <div class="welcome-text" id="txtWelcome">Đang tải thông tin sinh viên...</div>
+
+    <div class="section-box">
+        <h3>📊 Kết Quả Điểm Số</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Môn Học</th>
+                    <th>Điểm Số Hệ 10</th>
+                    <th>Đánh Giá</th>
+                </tr>
+            </thead>
+            <tbody id="tblDiem">
+                <tr><td colspan="3" style="text-align:center; color:#718096;">Chưa có dữ liệu điểm số từ giáo viên...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase-config.js"></script>
+<script src="common.js"></script>
+<script>
+    window.onload = async function() {
+        const session = await yeuCauPhien('sv');
+        if (!session) return;
+
+        const userEmail = session.user.email;
+
+        const { data: sinh_vien, error: svError } = await supabaseClient
+            .from('sinh_vien')
+            .select('id, ho_ten, ma_sv')
+            .eq('email_dang_nhap', userEmail)
+            .maybeSingle();
+
+        if (svError) {
+            hienLoiApi(svError, 'tải hồ sơ sinh viên');
+            document.getElementById('txtWelcome').innerText = `Tài khoản: ${userEmail}`;
+            return;
+        }
+
+        if (!sinh_vien) {
+            document.getElementById('txtWelcome').innerText =
+                `Tài khoản: ${userEmail} (Chưa có hồ sơ — liên hệ Admin để được cấp tài khoản đầy đủ)`;
+            return;
+        }
+
+        document.getElementById('txtWelcome').innerText = `👋 Xin chào sinh viên: ${sinh_vien.ho_ten} (${sinh_vien.ma_sv})`;
+        taiBangDiem(sinh_vien.id);
+    };
+
+    async function taiBangDiem(sinhVienId) {
+        const { data: diem, error } = await supabaseClient
+            .from('diem')
+            .select('diem_so, mon_hoc ( ten_mon )')
+            .eq('sinh_vien_id', sinhVienId);
+
+        if (error) return hienLoiApi(error, 'tải điểm');
+
+        if (diem && diem.length > 0) {
+            let html = '';
+            diem.forEach(d => {
+                const xepLoai = d.diem_so >= 5
+                    ? '<span style="color:green; font-weight:bold;">Đạt</span>'
+                    : '<span style="color:red; font-weight:bold;">Học lại</span>';
+                html += `<tr>
+                    <td>${d.mon_hoc.ten_mon}</td>
+                    <td>${d.diem_so}</td>
+                    <td>${xepLoai}</td>
+                </tr>`;
+            });
+            document.getElementById('tblDiem').innerHTML = html;
+        }
+    }
+
+    async function dangXuat() {
+        await supabaseClient.auth.signOut();
+        window.location.href = "login.html";
+    }
+</script>
+</body>
+</html>

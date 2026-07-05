@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Trang Giảng Viên - Quản lý Điểm số</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; background-color: #f4f7f6; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h2 { color: #dd6b20; border-bottom: 2px solid #dd6b20; padding-bottom: 10px; }
+        .form-group { background: #fffaf0; padding: 15px; margin-bottom: 15px; border-radius: 6px; border-left: 5px solid #dd6b20; }
+        input, select { padding: 8px; margin: 5px; width: 180px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 8px 15px; background: #dd6b20; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #c05621; }
+        .btn-logout { background: #718096; float: right; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #feebc8; color: #c05621; }
+        #api-error { color: #e53e3e; margin-bottom: 12px; display: none; }
+        .note { color: #718096; font-size: 14px; margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <button class="btn-logout" onclick="dangXuat()">Đăng xuất</button>
+    <h2>👩‍🏫 KHU VỰC CỦA GIÁO VIÊN</h2>
+    <p class="note">Tài khoản sinh viên do Admin cấp. Giảng viên chỉ nhập điểm và xem danh sách.</p>
+    <div id="api-error"></div>
+
+    <div class="form-group" style="background: #ebf8ff; border-left-color: #3182ce;">
+        <h3 style="color: #2b6cb0;">📝 Nhập / Cập nhật Điểm số</h3>
+        <select id="chonSinhVien"><option value="">-- Chọn Sinh Viên --</option></select>
+        <select id="chonMonHoc"><option value="">-- Chọn Môn Học --</option></select>
+        <input type="number" id="diemSo" placeholder="Nhập điểm (0-10)" min="0" max="10" step="0.1">
+        <button style="background: #3182ce;" onclick="luuDiem()">Lưu Điểm</button>
+    </div>
+
+    <div class="form-group">
+        <h3>📊 Danh Sách Sinh Viên</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Mã SV</th>
+                    <th>Họ Tên</th>
+                    <th>Email</th>
+                </tr>
+            </thead>
+            <tbody id="tblSinhVien"></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase-config.js"></script>
+<script src="common.js"></script>
+<script>
+    window.onload = async function() {
+        const session = await yeuCauPhien('gv');
+        if (!session) return;
+        taiDanhSachSinhVien();
+        taiDuLieuVaoSelectBox();
+    };
+
+    async function taiDanhSachSinhVien() {
+        const { data, error } = await supabaseClient.from('sinh_vien').select('*').order('id', { ascending: false });
+        if (error) return hienLoiApi(error, 'tải sinh viên');
+
+        let html = '';
+        (data || []).forEach(sv => {
+            html += `<tr>
+                <td>${sv.ma_sv}</td>
+                <td>${sv.ho_ten}</td>
+                <td>${sv.email_dang_nhap}</td>
+            </tr>`;
+        });
+        document.getElementById('tblSinhVien').innerHTML = html;
+    }
+
+    async function taiDuLieuVaoSelectBox() {
+        const { data: sv, error: errSV } = await supabaseClient.from('sinh_vien').select('id, ho_ten, ma_sv');
+        if (errSV) return hienLoiApi(errSV, 'tải danh sách SV');
+
+        let htmlSV = '<option value="">-- Chọn Sinh Viên --</option>';
+        (sv || []).forEach(s => htmlSV += `<option value="${s.id}">${s.ho_ten} (${s.ma_sv})</option>`);
+        document.getElementById('chonSinhVien').innerHTML = htmlSV;
+
+        const { data: mh, error: errMH } = await supabaseClient.from('mon_hoc').select('id, ten_mon');
+        if (errMH) return hienLoiApi(errMH, 'tải môn học');
+
+        let htmlMH = '<option value="">-- Chọn Môn Học --</option>';
+        (mh || []).forEach(m => htmlMH += `<option value="${m.id}">${m.ten_mon}</option>`);
+        document.getElementById('chonMonHoc').innerHTML = htmlMH;
+    }
+
+    async function luuDiem() {
+        const sinh_vien_id = document.getElementById('chonSinhVien').value;
+        const mon_hoc_id = document.getElementById('chonMonHoc').value;
+        const diem_so = parseFloat(document.getElementById('diemSo').value);
+
+        if (!sinh_vien_id || !mon_hoc_id || isNaN(diem_so)) {
+            return alert('Vui lòng chọn Sinh viên, Môn học và nhập điểm hợp lệ!');
+        }
+        if (diem_so < 0 || diem_so > 10) return alert('Điểm số phải từ 0 đến 10!');
+
+        const { error } = await supabaseClient.from('diem').insert([{ sinh_vien_id, mon_hoc_id, diem_so }]);
+
+        if (error) {
+            hienLoiApi(error, 'lưu điểm');
+        } else {
+            alert('Đã lưu điểm thành công!');
+            document.getElementById('diemSo').value = '';
+        }
+    }
+
+    async function dangXuat() {
+        await supabaseClient.auth.signOut();
+        window.location.href = 'login.html';
+    }
+</script>
+</body>
+</html>
