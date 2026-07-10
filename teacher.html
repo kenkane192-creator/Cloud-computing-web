@@ -3,119 +3,263 @@
 <head>
     <meta charset="UTF-8">
     <title>Trang Giảng Viên - Quản lý Điểm số</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 30px; background-color: #f4f7f6; }
-        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        h2 { color: #dd6b20; border-bottom: 2px solid #dd6b20; padding-bottom: 10px; }
-        .form-group { background: #fffaf0; padding: 15px; margin-bottom: 15px; border-radius: 6px; border-left: 5px solid #dd6b20; }
-        input, select { padding: 8px; margin: 5px; width: 180px; border: 1px solid #ccc; border-radius: 4px; }
-        button { padding: 8px 15px; background: #dd6b20; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #c05621; }
-        .btn-logout { background: #718096; float: right; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        th { background-color: #feebc8; color: #c05621; }
-        #api-error { color: #e53e3e; margin-bottom: 12px; display: none; }
-        .note { color: #718096; font-size: 14px; margin-bottom: 16px; }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="bg-gray-100 p-8">
 
-<div class="container">
-    <button class="btn-logout" onclick="dangXuat()">Đăng xuất</button>
-    <h2>👩‍🏫 KHU VỰC CỦA GIÁO VIÊN</h2>
-    <p class="note">Tài khoản sinh viên do Admin cấp. Giảng viên chỉ nhập điểm và xem danh sách.</p>
-    <div id="api-error"></div>
-
-    <div class="form-group" style="background: #ebf8ff; border-left-color: #3182ce;">
-        <h3 style="color: #2b6cb0;">📝 Nhập / Cập nhật Điểm số</h3>
-        <select id="chonSinhVien"><option value="">-- Chọn Sinh Viên --</option></select>
-        <select id="chonMonHoc"><option value="">-- Chọn Môn Học --</option></select>
-        <input type="number" id="diemSo" placeholder="Nhập điểm (0-10)" min="0" max="10" step="0.1">
-        <button style="background: #3182ce;" onclick="luuDiem()">Lưu Điểm</button>
+<div class="container p-4 md:p-8">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h2 class="text-3xl font-bold text-orange-600">👩‍🏫 CỔNG THÔNG TIN GIÁO VIÊN</h2>
+            <p class="text-gray-600 mt-2">Chúc quý thầy/cô một ngày tốt lành</p>
+        </div>
+        <!-- Settings Icon (Hamburger) -->
+        <button class="text-gray-600 hover:text-gray-800 focus:outline-none" onclick="showProfileTab()">
+            <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </button>
+    </div>
+    
+    <!-- Tab Navigation -->
+    <div class="mb-6">
+        <div class="border-b border-gray-200">
+            <nav id="teacher-tab-nav" class="-mb-px flex space-x-6" aria-label="Tabs">
+                <button id="btnDashboard" class="tab-btn-tailwind" onclick="showTab('dashboard')">Bảng điều khiển</button>
+                <button id="btnLopGiangDay" class="tab-btn-tailwind" onclick="showTab('lopGiangDay')">Lớp đang giảng dạy</button>
+                <button id="btnLichGiangDay" class="tab-btn-tailwind" onclick="showTab('lichGiangDay')">Lịch dạy trong tuần</button>
+                <!-- The "Grade Entry" tab is now accessed via "Lớp đang giảng dạy" -->
+                <button id="btnHoSo" class="tab-btn-tailwind" onclick="showTab('hoSo')">Hồ sơ cá nhân</button>
+            </nav>
+        </div>
     </div>
 
-    <div class="form-group">
-        <h3>📊 Danh Sách Sinh Viên</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Mã SV</th>
-                    <th>Họ Tên</th>
-                    <th>Email</th>
-                </tr>
-            </thead>
-            <tbody id="tblSinhVien"></tbody>
-        </table>
+    <div id="api-error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 hidden"></div>
+
+    <!-- Tab Content: Bảng điều khiển -->
+    <div id="dashboard" class="tab-content">
+        <!-- Stat Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <p class="text-sm font-medium text-gray-500">Môn đang giảng dạy</p>
+                <p id="stat-mon-hoc" class="text-3xl font-bold text-gray-800">0</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <p class="text-sm font-medium text-gray-500">Lớp được phân công</p>
+                <p id="stat-lop-hoc" class="text-3xl font-bold text-gray-800">0</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <p class="text-sm font-medium text-gray-500">Sinh viên phụ trách</p>
+                <p id="stat-sinh-vien" class="text-3xl font-bold text-gray-800">0</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <p class="text-sm font-medium text-gray-500">Lớp chưa nhập điểm</p>
+                <p id="stat-chua-nhap-diem" class="text-3xl font-bold text-red-600">0</p>
+            </div>
+        </div>
     </div>
+
+    <!-- Tab Content: Lớp đang giảng dạy -->
+    <div id="lopGiangDay" class="tab-content p-4">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-xl font-semibold mb-4 text-gray-700">Danh sách Lớp đang giảng dạy</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white">
+                    <thead class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
+                        <tr>
+                            <th class="py-3 px-6 text-left">Tên Lớp</th>
+                            <th class="py-3 px-6 text-left">Tên môn học</th>
+                            <th class="py-3 px-6 text-left">Chuyên ngành</th>
+                            <th class="py-3 px-6 text-left">Lịch học</th>
+                            <th class="py-3 px-6 text-center">Sĩ số</th>
+                            <th class="py-3 px-6 text-center">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tblLopGiangDay" class="text-gray-600 text-sm">
+                        <!-- Data will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content: Lịch giảng dạy -->
+    <div id="lichGiangDay" class="tab-content p-4">
+        <div class="schedule-nav flex justify-between items-center mb-6 p-4 bg-gray-50 rounded-lg shadow-sm">
+            <h3 id="weekDisplay" class="text-xl font-bold text-gray-800 w-full text-center">Thời Khóa Biểu Cố Định</h3>
+        </div>
+        <div class="schedule-grid rounded-lg overflow-hidden">
+            <!-- Header row -->
+            <div class="grid-header">Ca</div>
+            <div class="grid-header">Thứ 2</div>
+            <div class="grid-header">Thứ 3</div>
+            <div class="grid-header">Thứ 4</div>
+            <div class="grid-header">Thứ 5</div>
+            <div class="grid-header">Thứ 6</div>
+            <div class="grid-header">Thứ 7</div>
+            <div class="grid-header">Chủ Nhật</div>
+
+            <!-- Morning slots -->
+            <div class="time-label">Sáng</div>
+            <div class="day-column" id="col-1-sáng"><div class="time-slot" id="slot-1-sáng"></div></div>
+            <div class="day-column" id="col-2-sáng"><div class="time-slot" id="slot-2-sáng"></div></div>
+            <div class="day-column" id="col-3-sáng"><div class="time-slot" id="slot-3-sáng"></div></div>
+            <div class="day-column" id="col-4-sáng"><div class="time-slot" id="slot-4-sáng"></div></div>
+            <div class="day-column" id="col-5-sáng"><div class="time-slot" id="slot-5-sáng"></div></div>
+            <div class="day-column" id="col-6-sáng"><div class="time-slot" id="slot-6-sáng"></div></div>
+            <div class="day-column" id="col-0-sáng"><div class="time-slot" id="slot-0-sáng"></div></div>
+
+            <!-- Afternoon slots -->
+            <div class="time-label">Chiều</div>
+            <div class="day-column" id="col-1-chiều"><div class="time-slot" id="slot-1-chiều"></div></div>
+            <div class="day-column" id="col-2-chiều"><div class="time-slot" id="slot-2-chiều"></div></div>
+            <div class="day-column" id="col-3-chiều"><div class="time-slot" id="slot-3-chiều"></div></div>
+            <div class="day-column" id="col-4-chiều"><div class="time-slot" id="slot-4-chiều"></div></div>
+            <div class="day-column" id="col-5-chiều"><div class="time-slot" id="slot-5-chiều"></div></div>
+            <div class="day-column" id="col-6-chiều"><div class="time-slot" id="slot-6-chiều"></div></div>
+            <div class="day-column" id="col-0-chiều"><div class="time-slot" id="slot-0-chiều"></div></div>
+            
+            <!-- Evening slots -->
+            <div class="time-label">Tối</div>
+            <div class="day-column" id="col-1-tối"><div class="time-slot" id="slot-1-tối"></div></div>
+            <div class="day-column" id="col-2-tối"><div class="time-slot" id="slot-2-tối"></div></div>
+            <div class="day-column" id="col-3-tối"><div class="time-slot" id="slot-3-tối"></div></div>
+            <div class="day-column" id="col-4-tối"><div class="time-slot" id="slot-4-tối"></div></div>
+            <div class="day-column" id="col-5-tối"><div class="time-slot" id="slot-5-tối"></div></div>
+            <div class="day-column" id="col-6-tối"><div class="time-slot" id="slot-6-tối"></div></div>
+            <div class="day-column" id="col-0-tối"><div class="time-slot" id="slot-0-tối"></div></div>
+        </div>
+    </div>
+
+    <!-- Tab Content: Nhập điểm số -->
+    <div id="chiTietLop" class="tab-content p-4">
+        <div class="form-group bg-blue-50 border-l-4 border-blue-500 p-4 rounded-md shadow-sm space-y-4">
+            <h3 class="text-xl font-semibold text-blue-800">📝 Quản lý Điểm - Lớp học phần</h3>
+            <select id="chonMonHoc" onchange="populateClassDropdown()" class="block w-full mt-1 p-2 border border-gray-300 rounded-md" disabled>
+                <option value="">-- Chọn Môn Học --</option>
+            </select>
+            <select id="chonLopHoc" onchange="loadStudentsByCourseAndClass()" class="block w-full mt-1 p-2 border border-gray-300 rounded-md hidden" disabled>
+                <option value="">-- Chọn Lớp Học --</option>
+            </select>
+        </div>
+
+        <div class="form-group bg-white p-4 rounded-md shadow mt-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-gray-700">📊 Danh Sách Sinh Viên</h3>
+                <button class="px-4 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition text-sm flex items-center" onclick="exportToExcel()">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Xuất Excel
+                </button>
+            </div>
+            <div id="submission-status-container" class="mb-4 p-3 rounded-md text-center font-medium">
+                <!-- Status will be injected here -->
+            </div>
+            <input type="text" id="searchSinhVien" onkeyup="filterRenderedStudents()" placeholder="Tìm kiếm theo mã hoặc tên sinh viên..." class="block w-full mt-1 p-2 border border-gray-300 rounded-md mb-4">
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white border border-gray-200">
+                    <thead>
+                        <tr class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
+                            <th class="py-3 px-6 text-left">Mã SV</th>
+                            <th class="py-3 px-6 text-left">Họ Tên</th>
+                            <th class="py-3 px-6 text-left">Email</th>
+                            <th class="py-3 px-6 text-left">Chuyên ngành</th>
+                            <th class="py-3 px-6 text-center">Điểm Tổng Kết</th>
+                            <th class="py-3 px-6 text-left">Chuyên cần</th>
+                            <th class="py-3 px-6 text-left">Giữa kỳ</th>
+                            <th class="py-3 px-6 text-left">Cuối kỳ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tblSinhVien" class="text-gray-600 text-sm"></tbody>
+                </table>
+            </div>
+            <div id="grade-actions" class="mt-4 flex space-x-4">
+                <button class="px-4 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition" onclick="saveAllGrades()">Lưu Bảng Điểm</button>
+                <button class="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition" onclick="guiBangDiem()">Gửi Điểm Cho Admin</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content: Hồ sơ cá nhân -->
+    <div id="hoSo" class="tab-content">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl mx-auto p-6 md:p-8">
+            <div class="flex flex-col md:flex-row md:space-x-8 space-y-8 md:space-y-0">
+                <!-- Khối 1: Thông tin cá nhân (Read-only) -->
+                <div class="md:w-1/2 p-6 bg-gray-50 rounded-lg shadow-inner">
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-6">Thông tin cá nhân</h2>
+                    
+                    <div class="flex flex-col items-center mb-6">
+                        <!-- Avatar -->
+                        <div class="w-24 h-24 rounded-full bg-blue-200 flex items-center justify-center text-blue-800 text-4xl font-bold mb-3">
+                            <svg class="w-16 h-16" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path></svg>
+                        </div>
+                        <!-- Name and Role -->
+                        <h3 id="profileNameDisplay" class="text-xl font-bold text-gray-800"></h3>
+                        <p class="text-blue-600 font-medium">Giảng viên</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label for="profileId" class="block text-sm font-medium text-gray-700">Mã số (ID)</label>
+                            <input type="text" id="profileId" value="" disabled readonly class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 input-disabled">
+                        </div>
+                        <div>
+                            <label for="profileFullName" class="block text-sm font-medium text-gray-700">Họ và Tên</label>
+                            <input type="text" id="profileFullName" value="" disabled readonly class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 input-disabled">
+                        </div>
+                        <div>
+                            <label for="profileMajor" class="block text-sm font-medium text-gray-700">Khoa/Chuyên ngành</label>
+                            <input type="text" id="profileMajor" value="" disabled readonly class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 input-disabled">
+                        </div>
+                        <div>
+                            <label for="profileEmail" class="block text-sm font-medium text-gray-700">Email</label>
+                            <input type="email" id="profileEmail" value="" disabled readonly class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 input-disabled">
+                        </div>
+                        <button class="mt-6 w-full bg-slate-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-slate-600 transition" onclick="dangXuat()">Đăng xuất</button>
+                    </div>
+                </div>
+
+                <!-- Khối 2: Đổi Mật khẩu -->
+                <div class="md:w-1/2 p-6 bg-white rounded-lg shadow">
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-6">Đổi Mật khẩu</h2>
+                    <div id="password-update-message" class="mb-4 text-sm text-center"></div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label for="newPassword" class="block text-sm font-medium text-gray-700">Mật khẩu mới</label>
+                            <div class="relative mt-1">
+                                <input type="password" id="newPassword" class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 pr-10 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                <button type="button" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500" onclick="togglePasswordVisibility('newPassword')">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="confirmNewPassword" class="block text-sm font-medium text-gray-700">Nhập lại mật khẩu mới</label>
+                            <div class="relative mt-1">
+                                <input type="password" id="confirmNewPassword" class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 pr-10 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                <button type="button" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500" onclick="togglePasswordVisibility('confirmNewPassword')">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <button type="button" onclick="updatePassword()" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-300 shadow-md">
+                            Cập nhật mật khẩu
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal (now just a button) -->
+    <!-- The modal itself is removed as its content is now in a tab -->
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase-config.js"></script>
 <script src="common.js"></script>
-<script>
-    window.onload = async function() {
-        const session = await yeuCauPhien('gv');
-        if (!session) return;
-        taiDanhSachSinhVien();
-        taiDuLieuVaoSelectBox();
-    };
-
-    async function taiDanhSachSinhVien() {
-        const { data, error } = await supabaseClient.from('sinh_vien').select('*').order('id', { ascending: false });
-        if (error) return hienLoiApi(error, 'tải sinh viên');
-
-        let html = '';
-        (data || []).forEach(sv => {
-            html += `<tr>
-                <td>${sv.ma_sv}</td>
-                <td>${sv.ho_ten}</td>
-                <td>${sv.email_dang_nhap}</td>
-            </tr>`;
-        });
-        document.getElementById('tblSinhVien').innerHTML = html;
-    }
-
-    async function taiDuLieuVaoSelectBox() {
-        const { data: sv, error: errSV } = await supabaseClient.from('sinh_vien').select('id, ho_ten, ma_sv');
-        if (errSV) return hienLoiApi(errSV, 'tải danh sách SV');
-
-        let htmlSV = '<option value="">-- Chọn Sinh Viên --</option>';
-        (sv || []).forEach(s => htmlSV += `<option value="${s.id}">${s.ho_ten} (${s.ma_sv})</option>`);
-        document.getElementById('chonSinhVien').innerHTML = htmlSV;
-
-        const { data: mh, error: errMH } = await supabaseClient.from('mon_hoc').select('id, ten_mon');
-        if (errMH) return hienLoiApi(errMH, 'tải môn học');
-
-        let htmlMH = '<option value="">-- Chọn Môn Học --</option>';
-        (mh || []).forEach(m => htmlMH += `<option value="${m.id}">${m.ten_mon}</option>`);
-        document.getElementById('chonMonHoc').innerHTML = htmlMH;
-    }
-
-    async function luuDiem() {
-        const sinh_vien_id = document.getElementById('chonSinhVien').value;
-        const mon_hoc_id = document.getElementById('chonMonHoc').value;
-        const diem_so = parseFloat(document.getElementById('diemSo').value);
-
-        if (!sinh_vien_id || !mon_hoc_id || isNaN(diem_so)) {
-            return alert('Vui lòng chọn Sinh viên, Môn học và nhập điểm hợp lệ!');
-        }
-        if (diem_so < 0 || diem_so > 10) return alert('Điểm số phải từ 0 đến 10!');
-
-        const { error } = await supabaseClient.from('diem').insert([{ sinh_vien_id, mon_hoc_id, diem_so }]);
-
-        if (error) {
-            hienLoiApi(error, 'lưu điểm');
-        } else {
-            alert('Đã lưu điểm thành công!');
-            document.getElementById('diemSo').value = '';
-        }
-    }
-
-    async function dangXuat() {
-        await supabaseClient.auth.signOut();
-        window.location.href = 'login.html';
-    }
-</script>
+<script src="teacher.js"></script>
 </body>
 </html>

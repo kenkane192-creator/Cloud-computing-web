@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Sinh Viên</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* A few custom styles for better presentation */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+<div class="flex h-screen">
+    <!-- Sidebar (Desktop) -->
+    <aside class="hidden md:flex w-64 flex-col space-y-2 bg-white p-4 shadow-lg">
+        <div class="text-2xl font-bold text-blue-700 p-2">🎓 SV Portal</div>
+        <nav class="flex-1 space-y-2">
+            <a href="#" class="flex items-center space-x-3 rounded-md bg-blue-100 text-blue-700 p-3 font-semibold">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <span>Lịch học</span>
+            </a>
+            <a href="#" class="flex items-center space-x-3 rounded-md p-3 text-gray-600 hover:bg-gray-100">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <span>Tra cứu điểm</span>
+            </a>
+            <a href="#" class="flex items-center space-x-3 rounded-md p-3 text-gray-600 hover:bg-gray-100">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                <span>Thông tin cá nhân</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto p-4 md:p-8">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">Thời khóa biểu</h1>
+            <div class="flex items-center space-x-2 mt-4 md:mt-0">
+                <button class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Hôm nay</button>
+                <div class="flex items-center">
+                    <button class="p-1.5 text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <button class="p-1.5 text-gray-500 bg-white border-t border-b border-gray-300 hover:bg-gray-50">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </button>
+                </div>
+                <span class="text-lg font-semibold text-gray-700">Tháng 7, 2026</span>
+            </div>
+        </header>
+
+        <!-- Schedule Grid (Desktop) -->
+        <div class="hidden md:grid grid-cols-7 gap-px bg-gray-200 border border-gray-200 rounded-lg overflow-hidden">
+            <!-- Day Headers -->
+            <div class="bg-white p-2 text-center font-semibold text-gray-600">Thứ 2</div>
+            <div class="bg-white p-2 text-center font-semibold text-gray-600">Thứ 3</div>
+            <div class="bg-white p-2 text-center font-semibold text-gray-600">Thứ 4</div>
+            <div class="bg-white p-2 text-center font-semibold text-gray-600">Thứ 5</div>
+            <div class="bg-white p-2 text-center font-semibold text-gray-600">Thứ 6</div>
+            <div class="bg-white p-2 text-center font-semibold text-gray-600">Thứ 7</div>
+            <div class="bg-white p-2 text-center font-semibold text-gray-600">Chủ Nhật</div>
+
+            <!-- Schedule Cards -->
+            <div class="bg-white p-2 space-y-2 min-h-[120px]">
+                <!-- Card -->
+                <div class="bg-blue-100 border border-blue-200 text-blue-800 rounded-lg p-2 text-sm shadow">
+                    <p class="font-bold">Lập trình Web</p>
+                    <p>Phòng: A1-201</p>
+                    <p>Tiết: 1-3</p>
+                    <p>GV: Trần Văn B</p>
+                </div>
+            </div>
+            <div class="bg-white p-2 space-y-2"></div>
+            <div class="bg-white p-2 space-y-2">
+                <div class="bg-green-100 border border-green-200 text-green-800 rounded-lg p-2 text-sm shadow">
+                    <p class="font-bold">Cơ sở dữ liệu</p>
+                    <p>Phòng: B2-305</p>
+                    <p>Tiết: 4-6</p>
+                    <p>GV: Lê Thị C</p>
+                </div>
+            </div>
+            <div class="bg-white p-2 space-y-2"></div>
+             <div class="bg-white p-2 space-y-2">
+                <div class="bg-blue-100 border border-blue-200 text-blue-800 rounded-lg p-2 text-sm shadow">
+                    <p class="font-bold">Lập trình Web</p>
+                    <p>Phòng: A1-201</p>
+                    <p>Tiết: 1-3</p>
+                    <p>GV: Trần Văn B</p>
+                </div>
+                 <div class="bg-yellow-100 border border-yellow-200 text-yellow-800 rounded-lg p-2 text-sm shadow">
+                    <p class="font-bold">Kiến trúc MT</p>
+                    <p>Phòng: C1-101</p>
+                    <p>Tiết: 7-9</p>
+                    <p>GV: Phạm Văn D</p>
+                </div>
+            </div>
+            <div class="bg-white p-2 space-y-2"></div>
+            <div class="bg-white p-2 space-y-2"></div>
+        </div>
+
+        <!-- Schedule List (Mobile) -->
+        <div class="md:hidden space-y-4">
+            <!-- Day 1: Thứ 2 -->
+            <div>
+                <h3 class="font-semibold text-lg mb-2">Thứ 2</h3>
+                <div class="space-y-2">
+                     <div class="bg-white rounded-lg p-3 shadow flex items-center space-x-4">
+                        <div class="w-1.5 h-16 bg-blue-500 rounded-full"></div>
+                        <div>
+                            <p class="font-bold text-gray-800">Lập trình Web</p>
+                            <p class="text-sm text-gray-600">Phòng: A1-201  ·  Tiết: 1-3</p>
+                            <p class="text-sm text-gray-600">GV: Trần Văn B</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+             <!-- Day 2: Thứ 3 (No events) -->
+            <div>
+                <h3 class="font-semibold text-lg mb-2">Thứ 3</h3>
+                <div class="text-center text-gray-500 p-4 bg-white rounded-lg shadow">Không có lịch học</div>
+            </div>
+            <!-- Day 3: Thứ 4 -->
+             <div>
+                <h3 class="font-semibold text-lg mb-2">Thứ 4</h3>
+                <div class="space-y-2">
+                     <div class="bg-white rounded-lg p-3 shadow flex items-center space-x-4">
+                        <div class="w-1.5 h-16 bg-green-500 rounded-full"></div>
+                        <div>
+                            <p class="font-bold text-gray-800">Cơ sở dữ liệu</p>
+                            <p class="text-sm text-gray-600">Phòng: B2-305  ·  Tiết: 4-6</p>
+                            <p class="text-sm text-gray-600">GV: Lê Thị C</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Day 5: Thứ 6 -->
+             <div>
+                <h3 class="font-semibold text-lg mb-2">Thứ 6</h3>
+                <div class="space-y-2">
+                     <div class="bg-white rounded-lg p-3 shadow flex items-center space-x-4">
+                        <div class="w-1.5 h-16 bg-blue-500 rounded-full"></div>
+                        <div>
+                            <p class="font-bold text-gray-800">Lập trình Web</p>
+                            <p class="text-sm text-gray-600">Phòng: A1-201  ·  Tiết: 1-3</p>
+                            <p class="text-sm text-gray-600">GV: Trần Văn B</p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg p-3 shadow flex items-center space-x-4">
+                        <div class="w-1.5 h-16 bg-yellow-500 rounded-full"></div>
+                        <div>
+                            <p class="font-bold text-gray-800">Kiến trúc MT</p>
+                            <p class="text-sm text-gray-600">Phòng: C1-101  ·  Tiết: 7-9</p>
+                            <p class="text-sm text-gray-600">GV: Phạm Văn D</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- Bottom Menu (Mobile) -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around shadow-t-lg">
+    <a href="#" class="flex flex-col items-center justify-center p-3 text-blue-600 w-full">
+        <svg class="h-6 w-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+        <span class="text-xs">Lịch học</span>
+    </a>
+    <a href="#" class="flex flex-col items-center justify-center p-3 text-gray-500 w-full">
+        <svg class="h-6 w-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+        <span class="text-xs">Điểm số</span>
+    </a>
+    <a href="#" class="flex flex-col items-center justify-center p-3 text-gray-500 w-full">
+        <svg class="h-6 w-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+        <span class="text-xs">Cá nhân</span>
+    </a>
+</nav>
+</body>
+</html>

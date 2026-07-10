@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tra cứu điểm số</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+
+    <div class="max-w-7xl mx-auto space-y-8">
+        <h1 class="text-4xl font-bold text-gray-800 mb-6">Tra cứu điểm số</h1>
+
+        <!-- Khu vực 1: Bảng thống kê tổng quan -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Card 1: Tổng số tín chỉ đã tích lũy -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-700">Tín chỉ đã tích lũy</h2>
+                    <span class="text-3xl font-bold text-blue-600">60 / 120</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                    <div class="bg-blue-600 h-2.5 rounded-full" style="width: 50%;"></div>
+                </div>
+                <p class="text-sm text-gray-500 mt-2">50% hoàn thành</p>
+            </div>
+
+            <!-- Card 2: Điểm trung bình học kỳ hiện tại -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">ĐTB Học kỳ này</h2>
+                <div class="flex justify-around items-center">
+                    <div>
+                        <span class="text-4xl font-bold text-green-600">3.5</span>
+                        <p class="text-sm text-gray-500">Hệ 4.0</p>
+                    </div>
+                    <div>
+                        <span class="text-4xl font-bold text-green-600">8.75</span>
+                        <p class="text-sm text-gray-500">Hệ 10.0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: Điểm trung bình tích lũy (GPA) -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">GPA Tích lũy</h2>
+                <div class="text-center">
+                    <span class="text-5xl font-bold text-purple-600">3.2</span>
+                    <p class="text-sm text-gray-500 mt-2">Hệ 4.0</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Khu vực 2: Chi tiết điểm -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold text-gray-700">Chi tiết điểm</h2>
+                <select id="semesterFilter" class="mt-4 md:mt-0 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    <option value="hk1_2026">Học kỳ 1 - 2026</option>
+                    <option value="hk2_2025">Học kỳ 2 - 2025</option>
+                    <option value="hk1_2025">Học kỳ 1 - 2025</option>
+                </select>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white">
+                    <thead class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
+                        <tr>
+                            <th class="py-3 px-6 text-left">Mã môn</th>
+                            <th class="py-3 px-6 text-left">Tên môn</th>
+                            <th class="py-3 px-6 text-center">Tín chỉ</th>
+                            <th class="py-3 px-6 text-center">QT</th>
+                            <th class="py-3 px-6 text-center">CK</th>
+                            <th class="py-3 px-6 text-center">Điểm chữ</th>
+                            <th class="py-3 px-6 text-center">Kết quả</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gradesTableBody" class="text-gray-700 text-sm">
+                        <!-- Mock Data Rows -->
+                        <tr>
+                            <td class="py-3 px-6 text-left">IT101</td>
+                            <td class="py-3 px-6 text-left">Lập trình cơ bản</td>
+                            <td class="py-3 px-6 text-center">3</td>
+                            <td class="py-3 px-6 text-center">8.0</td>
+                            <td class="py-3 px-6 text-center">7.5</td>
+                            <td class="py-3 px-6 text-center text-green-600 font-bold flex items-center justify-center">
+                                A <svg class="w-4 h-4 ml-1 text-yellow-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                            </td>
+                            <td class="py-3 px-6 text-center text-green-600 font-semibold">Đạt</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 px-6 text-left">MA102</td>
+                            <td class="py-3 px-6 text-left">Giải tích 1</td>
+                            <td class="py-3 px-6 text-center">4</td>
+                            <td class="py-3 px-6 text-center">5.0</td>
+                            <td class="py-3 px-6 text-center">4.5</td>
+                            <td class="py-3 px-6 text-center text-red-600 font-bold">F</td>
+                            <td class="py-3 px-6 text-center text-red-600 font-semibold">Trượt</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 px-6 text-left">EN101</td>
+                            <td class="py-3 px-6 text-left">Tiếng Anh Tổng quát 1</td>
+                            <td class="py-3 px-6 text-center">3</td>
+                            <td class="py-3 px-6 text-center">6.5</td>
+                            <td class="py-3 px-6 text-center">6.0</td>
+                            <td class="py-3 px-6 text-center font-bold">C</td>
+                            <td class="py-3 px-6 text-center text-green-600 font-semibold">Đạt</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 px-6 text-left">PH201</td>
+                            <td class="py-3 px-6 text-left">Vật lý Đại cương</td>
+                            <td class="py-3 px-6 text-center">3</td>
+                            <td class="py-3 px-6 text-center">7.0</td>
+                            <td class="py-3 px-6 text-center">7.0</td>
+                            <td class="py-3 px-6 text-center font-bold">B</td>
+                            <td class="py-3 px-6 text-center text-green-600 font-semibold">Đạt</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 px-6 text-left">IT203</td>
+                            <td class="py-3 px-6 text-left">Cấu trúc dữ liệu và giải thuật</td>
+                            <td class="py-3 px-6 text-center">3</td>
+                            <td class="py-3 px-6 text-center">9.0</td>
+                            <td class="py-3 px-6 text-center">9.5</td>
+                            <td class="py-3 px-6 text-center text-green-600 font-bold flex items-center justify-center">
+                                A+ <svg class="w-4 h-4 ml-1 text-yellow-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                            </td>
+                            <td class="py-3 px-6 text-center text-green-600 font-semibold">Đạt</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Basic function for semester filter, will likely involve fetching data in a real app
+        document.getElementById('semesterFilter').addEventListener('change', function() {
+            const selectedSemester = this.value;
+            console.log('Selected semester:', selectedSemester);
+            // In a real application, you would fetch and render grades for this semester
+            // For now, it's just a UI demonstration.
+            alert('Đang hiển thị điểm số cho: ' + selectedSemester.replace('hk1_2026', 'Học kỳ 1 - 2026').replace('hk2_2025', 'Học kỳ 2 - 2025').replace('hk1_2025', 'Học kỳ 1 - 2025'));
+        });
+    </script>
+</body>
+</html>
