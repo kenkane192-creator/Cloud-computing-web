@@ -106,6 +106,8 @@ function populateProfileTab(data) {
     document.getElementById('profileAddress').value = data.dia_chi || '';
     document.getElementById('profileAvatarUrl').value = data.anh_dai_dien_url || '';
     document.getElementById('profileAvatar').src = data.anh_dai_dien_url || 'https://via.placeholder.com/96';
+    document.getElementById('profileAvatarHeader').src = data.anh_dai_dien_url || 'https://via.placeholder.com/96';
+    document.getElementById('profileNameShort').textContent = data.ho_ten;
 }
 
 async function updateStudentProfile() {

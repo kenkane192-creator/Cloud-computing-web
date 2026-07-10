@@ -260,8 +260,8 @@ function renderDuyetDiemTab() {
             : `<span class="bg-yellow-200 text-yellow-700 py-1 px-3 rounded-full text-xs font-semibold">Chờ duyệt</span>`;
         
         const actionButton = sub.da_duyet
-            ? `<button class="text-gray-400 cursor-not-allowed text-sm">Hoàn tất</button>`
-            : `<button onclick="showApprovalModal(${sub.mon_hoc_id}, ${sub.lop_id})" class="text-blue-600 hover:underline text-sm">Xem & Duyệt</button>`;
+            ? `<button onclick="exportApprovedGrades(${sub.mon_hoc_id}, ${sub.lop_id})" class="text-green-600 hover:underline text-sm font-semibold">Xuất Excel</button>`
+            : `<button onclick="showApprovalModal(${sub.mon_hoc_id}, ${sub.lop_id})" class="text-blue-600 hover:underline text-sm font-semibold">Xem & Duyệt</button>`;
 
         return `
             <tr class="border-b border-gray-200 hover:bg-gray-100">
@@ -701,6 +701,57 @@ async function approveSubmission(monHocId, lopId) {
     alert('Duyệt bảng điểm thành công!');
     closeApprovalModal();
     await loadAndRenderAll(); // Refresh all data
+}
+
+// --- EXPORT FUNCTION ---
+async function exportApprovedGrades(monHocId, lopId) {
+    // 1. Get course and class info from cache for the filename
+    const monHoc = cachedData.mon_hoc.find(mh => mh.id === monHocId);
+    const lopHoc = cachedData.lop_hoc.find(lh => lh.id === lopId);
+    if (!monHoc || !lopHoc) {
+        return alert('Không tìm thấy thông tin môn học hoặc lớp học.');
+    }
+    const fileName = `BangDiem_${monHoc.ten_mon.replace(/\s/g, '_')}_${lopHoc.ten_lop}.csv`;
+
+    // 2. Fetch the detailed grade data
+    const { data: students, error: studentError } = await supabaseClient
+        .from('sinh_vien')
+        .select('ma_sv, ho_ten, email_dang_nhap, chuyen_nganh(ten_chuyen_nganh), diem!inner(diem_chuyen_can, diem_giua_ky, diem_cuoi_ky, diem_so)')
+        .eq('lop_id', lopId)
+        .eq('diem.mon_hoc_id', monHocId);
+
+    if (studentError) return hienLoiApi(studentError, 'xuất bảng điểm');
+    if (!students || students.length === 0) return alert('Không có dữ liệu điểm để xuất.');
+
+    // 3. Build CSV content
+    const headers = ['Mã SV', 'Họ Tên', 'Email', 'Chuyên ngành', 'Điểm Chuyên Cần', 'Điểm Giữa Kỳ', 'Điểm Cuối Kỳ', 'Điểm Tổng Kết'];
+    const rows = students.map(sv => {
+        const diem = sv.diem[0] || {};
+        const rowData = [
+            `'${sv.ma_sv}`,
+            sv.ho_ten,
+            sv.email_dang_nhap || '',
+            sv.chuyen_nganh?.ten_chuyen_nganh || '',
+            diem.diem_chuyen_can ?? '',
+            diem.diem_giua_ky ?? '',
+            diem.diem_cuoi_ky ?? '',
+            diem.diem_so ?? ''
+        ];
+        return rowData.join(',');
+    });
+
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM for UTF-8
+    csvContent += headers.join(',') + '\r\n';
+    csvContent += rows.join('\r\n');
+
+    // 4. Trigger download
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 // --- ROSTER MANAGEMENT MODAL ---

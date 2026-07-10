@@ -459,7 +459,7 @@ async function guiBangDiem() {
     await loadStudentsByCourseAndClass(); // Re-render the current view to lock it
 }
 
-function exportToExcel() {
+async function exportToExcel() {
     const monHocId = document.getElementById('chonMonHoc').value;
     const lopHocId = document.getElementById('chonLopHoc').value;
 
@@ -467,26 +467,34 @@ function exportToExcel() {
         return alert('Vui lòng chọn môn học và lớp học trước khi xuất file.');
     }
 
+    // 1. Get course and class info from cache for the filename
     const monHocInfo = cachedData.mon_hoc.get(parseInt(monHocId));
     const lopHocInfo = cachedData.lop_hoc.get(parseInt(lopHocId));
     const fileName = `Diem_${monHocInfo?.ten_mon.replace(/\s/g, '_')}_${lopHocInfo?.ten_lop}.csv`;
 
-    const headers = ['Mã SV', 'Họ Tên', 'Email', 'Chuyên ngành', 'Điểm Chuyên Cần', 'Điểm Giữa Kỳ', 'Điểm Cuối Kỳ', 'Điểm Tổng Kết'];
-    
-    const gradeMap = new Map();
-    cachedData.diem.filter(d => d.mon_hoc_id == monHocId).forEach(d => gradeMap.set(d.sinh_vien_id, d));
+    // 2. Fetch the detailed grade data directly for reliability
+    const { data: students, error: studentError } = await supabaseClient
+        .from('sinh_vien')
+        .select('ma_sv, ho_ten, email_dang_nhap, chuyen_nganh(ten_chuyen_nganh), diem!inner(diem_chuyen_can, diem_giua_ky, diem_cuoi_ky, diem_so)')
+        .eq('lop_id', lopHocId)
+        .eq('diem.mon_hoc_id', monHocId);
 
-    const rows = currentCourseStudents.map(sv => {
-        const diemData = gradeMap.get(sv.id);
+    if (studentError) return hienLoiApi(studentError, 'xuất bảng điểm');
+    if (!students || students.length === 0) return alert('Không có dữ liệu điểm của lớp này để xuất.');
+
+    // 3. Build CSV content
+    const headers = ['Mã SV', 'Họ Tên', 'Email', 'Chuyên ngành', 'Điểm Chuyên Cần', 'Điểm Giữa Kỳ', 'Điểm Cuối Kỳ', 'Điểm Tổng Kết'];
+    const rows = students.map(sv => {
+        const diem = sv.diem[0] || {};
         const rowData = [
             `'${sv.ma_sv}`, // Dấu ' để Excel hiểu là text
             sv.ho_ten,
             sv.email_dang_nhap || '',
             sv.chuyen_nganh?.ten_chuyen_nganh || '',
-            diemData?.diem_chuyen_can ?? '',
-            diemData?.diem_giua_ky ?? '',
-            diemData?.diem_cuoi_ky ?? '',
-            diemData?.diem_so ?? ''
+            diem.diem_chuyen_can ?? '',
+            diem.diem_giua_ky ?? '',
+            diem.diem_cuoi_ky ?? '',
+            diem.diem_so ?? ''
         ];
         return rowData.join(',');
     });
@@ -495,6 +503,7 @@ function exportToExcel() {
     csvContent += headers.join(',') + '\r\n';
     csvContent += rows.join('\r\n');
 
+    // 4. Trigger download
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -544,4 +553,10 @@ function populateProfileModal(data, role) {
     document.getElementById('profileFullName').value = data.ho_ten;
     document.getElementById('profileMajor').value = data.chuyen_nganh?.ten_chuyen_nganh || 'N/A';
     document.getElementById('profileEmail').value = data.email_dang_nhap;
+
+    // Populate new header
+    document.getElementById('txtWelcomeTeacher').textContent = `Chào mừng, ${data.ho_ten}.`;
+    document.getElementById('profileNameShort').textContent = data.ho_ten;
+    const initials = data.ho_ten.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    document.getElementById('profileAvatar').textContent = initials;
 }

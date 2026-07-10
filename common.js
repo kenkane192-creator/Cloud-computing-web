@@ -1,3 +1,10 @@
+function toggleUserMenu() {
+    const menu = document.getElementById('user-menu');
+    if (menu) {
+        menu.classList.toggle('hidden');
+    }
+}
+
 function hienLoiApi(error, context) {
     const box = document.getElementById('api-error');
     if (!box) return;
