@@ -127,7 +127,17 @@ function populateAllDropdowns() {
     populateDropdowns('lichHocChuyenNganh', cachedData.chuyen_nganh, 'id', 'ten_chuyen_nganh', '-- Lọc GV theo chuyên ngành --');
     populateDropdowns('userChuyenNganhFilter', cachedData.chuyen_nganh, 'id', 'ten_chuyen_nganh', 'Tất cả chuyên ngành');
     populateDropdowns('lichHocMonHoc', cachedData.mon_hoc, 'id', 'ten_mon', '-- Chọn Môn học --');
-    populateDropdowns('lichHocLop', cachedData.lop_hoc, 'id', 'ten_lop', '-- Chọn Lớp học --');
+    
+    // Custom population for combined Lớp & Loại hình dropdown
+    const lichHocLopEl = document.getElementById('lichHocLop');
+    if (lichHocLopEl) {
+        let optionsHtml = `<option value="">-- Chọn Lớp & Loại hình --</option>`;
+        (cachedData.lop_hoc || []).forEach(lop => {
+            optionsHtml += `<option value="${lop.id}-Lý thuyết">${lop.ten_lop} - Lý thuyết</option>`;
+            optionsHtml += `<option value="${lop.id}-Thực hành">${lop.ten_lop} - Thực hành</option>`;
+        });
+        lichHocLopEl.innerHTML = optionsHtml;
+    }
 }
 
 function populateDropdowns(selectId, data, valueField, textField, defaultOptionText) {
@@ -308,13 +318,19 @@ function renderLichHocTab() {
 }
 
 async function themLichHoc() {
+    const lopVaLoaiHinh = document.getElementById('lichHocLop').value;
+    if (!lopVaLoaiHinh) {
+        return alert('Vui lòng chọn Lớp & Loại hình!');
+    }
+    const [lopId, loaiHinh] = lopVaLoaiHinh.split('-');
+
     const lichHoc = {
         mon_hoc_id: document.getElementById('lichHocMonHoc').value,
-        lop_id: document.getElementById('lichHocLop').value,
+        lop_id: lopId,
         giang_vien_id: document.getElementById('lichHocGiangVien').value,
         ngay_trong_tuan: document.getElementById('ngayTrongTuan').value,
         ca_hoc: document.getElementById('caHoc').value,
-        loai_hinh: document.getElementById('loaiHinh').value,
+        loai_hinh: loaiHinh,
         phong_hoc: document.getElementById('phongHoc').value.trim(),
     };
 
