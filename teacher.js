@@ -332,15 +332,15 @@ function renderStudentGradeTable(studentsToRender) {
         const diem_cc = diemData?.diem_chuyen_can ?? '';
         const diem_gk = diemData?.diem_giua_ky ?? '';
         const diem_ck = diemData?.diem_cuoi_ky ?? '';
-        const diem_so = diemData?.diem_so !== null ? diemData.diem_so : 'N/A';
+        const diem_so = diemData?.diem_so ?? 'N/A';
         const chuyenNganhTen = sv.chuyen_nganh?.ten_chuyen_nganh || 'N/A';
 
         html += `
             <tr data-sv-id="${sv.id}" class="border-b border-gray-200 hover:bg-gray-50">
-                <td class="py-3 px-6 text-left">${sv.ma_sv}</td>
-                <td class="py-3 px-6 text-left">${sv.ho_ten}</td>
-                <td class="py-3 px-6 text-left">${sv.email_dang_nhap || 'N/A'}</td>
-                <td class="py-3 px-6 text-left">${chuyenNganhTen}</td>
+                <td class="py-3 px-6 text-left whitespace-nowrap">${sv.ma_sv}</td>
+                <td class="py-3 px-6 text-left whitespace-nowrap">${sv.ho_ten}</td>
+                <td class="py-3 px-6 text-left whitespace-nowrap">${sv.email_dang_nhap || 'N/A'}</td>
+                <td class="py-3 px-6 text-left whitespace-nowrap">${chuyenNganhTen}</td>
                 <td class="py-3 px-6 text-center font-semibold">${diem_so}</td>
                 <td class="py-3 px-6 text-left"><input type="number" class="grade-input w-20 p-1 border rounded" value="${diem_cc}" min="0" max="10" step="0.1" ${isSubmitted ? 'disabled' : ''}></td>
                 <td class="py-3 px-6 text-left"><input type="number" class="grade-input w-20 p-1 border rounded" value="${diem_gk}" min="0" max="10" step="0.1" ${isSubmitted ? 'disabled' : ''}></td>
