@@ -721,7 +721,7 @@ function openRosterModal(lichHocId) {
 
     // Separate students
     const enrolledStudents = cachedData.sinh_vien.filter(sv => sv.lop_id === lopId);
-    const availableStudents = cachedData.sinh_vien.filter(sv => sv.chuyen_nganh_id === chuyenNganhId && (sv.lop_id !== lopId && sv.lop_id !== null));
+    const availableStudents = cachedData.sinh_vien.filter(sv => sv.chuyen_nganh_id === chuyenNganhId && sv.lop_id !== lopId);
 
     // Populate lists
     populateListbox('enrolledStudents', enrolledStudents);
@@ -759,15 +759,37 @@ function moveStudents(sourceListId, destListId, type) {
 async function saveRosterChanges() {
     const lopId = parseInt(document.getElementById('rosterLopId').value);
     if (!lopId) return alert('Lỗi: Không xác định được lớp học.');
-
+    
     const enrolledList = document.getElementById('enrolledStudents');
-    const finalEnrolledIds = Array.from(enrolledList.options).map(opt => parseInt(opt.value));
+    const finalEnrolledIds = new Set(Array.from(enrolledList.options).map(opt => parseInt(opt.value)));
 
-    const updates = finalEnrolledIds.map(id => ({ id: id, lop_id: lopId }));
+    const initialEnrolledIds = new Set(
+        cachedData.sinh_vien.filter(sv => sv.lop_id === lopId).map(sv => sv.id)
+    );
 
-    const { error } = await supabaseClient.from('sinh_vien').upsert(updates, { onConflict: 'id' });
+    const studentsToAdd = [...finalEnrolledIds].filter(id => !initialEnrolledIds.has(id));
+    const studentsToRemove = [...initialEnrolledIds].filter(id => !finalEnrolledIds.has(id));
 
-    if (error) return alert('Lỗi khi cập nhật sĩ số lớp: ' + error.message);
+    const promises = [];
+    if (studentsToAdd.length > 0) {
+        promises.push(supabaseClient.from('sinh_vien').update({ lop_id: lopId }).in('id', studentsToAdd));
+    }
+    if (studentsToRemove.length > 0) {
+        promises.push(supabaseClient.from('sinh_vien').update({ lop_id: null }).in('id', studentsToRemove));
+    }
+
+    if (promises.length === 0) {
+        alert('Không có thay đổi nào để lưu.');
+        closeRosterModal();
+        return;
+    }
+
+    const results = await Promise.all(promises);
+    const firstErrorResult = results.find(res => res.error);
+
+    if (firstErrorResult) {
+        return alert('Lỗi khi cập nhật sĩ số lớp: ' + firstErrorResult.error.message);
+    }
 
     alert('Cập nhật sĩ số lớp thành công!');
     closeRosterModal();
