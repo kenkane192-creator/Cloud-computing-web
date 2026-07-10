@@ -203,20 +203,17 @@ function getCardColor(courseId) {
 
 // --- NAVIGATION & INTERACTIVITY ---
 async function viewClassDetails(monHocId, lopId) {
-    // Switch to the grade entry tab
     showTab('chiTietLop');
 
-    // Set the dropdowns
-    const monHocDropdown = document.getElementById('chonMonHoc');
-    const lopDropdown = document.getElementById('chonLopHoc');
+    // Set the dropdowns for display purposes
+    document.getElementById('chonMonHoc').value = monHocId;
+    await populateClassDropdown(); // This populates the class dropdown
+    document.getElementById('chonLopHoc').value = lopId;
 
-    monHocDropdown.value = monHocId;
-    
-    await populateClassDropdown(); 
-    lopDropdown.value = lopId;
-
-    // Load the student list
-    await loadStudentsByCourseAndClass();
+    // Directly filter students from the cache and render the table
+    const studentsInClass = cachedData.sinh_vien.filter(sv => sv.lop_id == lopId);
+    currentCourseStudents = studentsInClass;
+    renderStudentGradeTable(currentCourseStudents);
 }
 
 // --- SCHEDULE (LỊCH GIẢNG DẠY) TAB ---
