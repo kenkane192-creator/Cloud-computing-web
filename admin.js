@@ -193,7 +193,6 @@ function filterLopHocDropdown() {
 function createActionButtons(id, deleteFnName, editFnName = null) {
     return `
         <div class="flex item-center justify-center space-x-4">
-            <button class="w-5 h-5 text-gray-500 hover:text-blue-600">
             <button ${editFnName ? `onclick="${editFnName}(${id})"` : 'disabled'} class="w-5 h-5 text-gray-500 ${editFnName ? 'hover:text-blue-600' : 'cursor-not-allowed opacity-50'}">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
@@ -425,14 +424,11 @@ async function xoaLichHoc(id) {
 
 // --- TÀI KHOẢN ---
 async function taoTaiKhoanSV() {
-    const [ma_sv, ho_ten, email, password, chuyen_nganh_id] = 
-        ['svMa', 'svTen', 'svEmail', 'svPassword', 'svChuyenNganh'].map(id => document.getElementById(id).value.trim());
     const [ma_sv, ho_ten, email, password, chuyen_nganh_id, lop_id] = 
         ['svMa', 'svTen', 'svEmail', 'svPassword', 'svChuyenNganh', 'svLopHoc'].map(id => document.getElementById(id).value.trim());
     const msg = document.getElementById('sv-msg');
     
     try {
-        if (!ma_sv || !ho_ten || !email || !password || !chuyen_nganh_id) throw new Error('Vui lòng điền đầy đủ thông tin.');
         if (!ma_sv || !ho_ten || !email || !password || !chuyen_nganh_id || !lop_id) throw new Error('Vui lòng điền đầy đủ thông tin, bao gồm cả Lớp Sinh Hoạt.');
         if (email.startsWith('admin') || email.startsWith('gv')) throw new Error('Email sinh viên không hợp lệ.');
         
@@ -446,14 +442,12 @@ async function taoTaiKhoanSV() {
         if (authData.user) {
             const { error: profileError } = await supabaseClient
                 .from('sinh_vien')
-                .insert([{ ma_sv, ho_ten, email_dang_nhap: email, chuyen_nganh_id, user_id: authData.user.id }]);
                 .insert([{ ma_sv, ho_ten, email_dang_nhap: email, chuyen_nganh_id, lop_id, user_id: authData.user.id }]);
             if (profileError) throw new Error('Tài khoản đã tạo, nhưng lưu hồ sơ SV thất bại: ' + profileError.message);
         }
 
         msg.style.color = 'green';
         msg.innerText = 'Tạo tài khoản SV thành công: ' + authData.user.email;
-        ['svMa', 'svTen', 'svEmail', 'svPassword', 'svChuyenNganh'].forEach(id => document.getElementById(id).value = '');
         ['svMa', 'svTen', 'svEmail', 'svPassword', 'svChuyenNganh', 'svLopHoc'].forEach(id => document.getElementById(id).value = '');
         await loadAndRenderAll();
 
@@ -522,7 +516,6 @@ function renderTaiKhoanTabs() {
         lop_id: user.lop_id,
         lop_ten: user.lop_hoc?.ten_lop,
         chuyen_nganh_ten: user.chuyen_nganh?.ten_chuyen_nganh || 'N/A',
-        deleteFn: 'xoaSinhVien'
         deleteFn: 'xoaSinhVien',
         editFn: 'moSuaSinhVienModal'
     }));
@@ -557,7 +550,6 @@ function renderCombinedUserTable() {
                 <td class="py-3 px-6 text-left">${user.email}</td>
                 <td class="py-3 px-6 text-left">${user.chuyen_nganh_ten}</td>
                 <td class="py-3 px-6 text-left">${user.lop_ten || ''}</td>
-                <td class="py-3 px-6 text-center">${createActionButtons(user.id, user.deleteFn)}</td>
                 <td class="py-3 px-6 text-center">${createActionButtons(user.id, user.deleteFn, user.editFn)}</td>
             </tr>
         `;
@@ -571,7 +563,6 @@ function renderSinhVienTable(data) {
             <td class="px-6 py-4 text-sm">${sv.email_dang_nhap}</td>
             <td class="px-6 py-4 text-sm">${sv.chuyen_nganh?.ten_chuyen_nganh || 'N/A'}</td>
             <td class="px-6 py-4 text-sm">${sv.lop_hoc?.ten_lop || 'N/A'}</td>
-            <td class="px-6 py-4 text-center">${createActionButtons(sv.id, 'xoaSinhVien')}</td>
             <td class="px-6 py-4 text-center">${createActionButtons(sv.id, 'xoaSinhVien', 'moSuaSinhVienModal')}</td>
         </tr>
     `).join(''));
