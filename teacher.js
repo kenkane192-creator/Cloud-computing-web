@@ -63,7 +63,7 @@ function showTab(tabId) {
 
 // --- MASTER DATA HANDLING ---
 async function loadAndRenderAll() {
-    // 1. Fetch all teaching assignments (lich_hoc) for the current teacher
+    // 1. Fetch teaching assignments
     const { data: lichHocData, error: lichHocError } = await supabaseClient
         .from('lich_hoc')
         .select('*, mon_hoc(*, chuyen_nganh(ten_chuyen_nganh)), lop_hoc(*)')
@@ -72,8 +72,15 @@ async function loadAndRenderAll() {
     if (lichHocError) return hienLoiApi(lichHocError, 'tải lịch giảng dạy');
     cachedData.lich_hoc = lichHocData || [];
 
+    // Reset caches
+    cachedData.unique_mon_hoc_ids.clear();
+    cachedData.unique_lop_ids.clear();
+    cachedData.unique_sinh_vien_ids.clear();
+    cachedData.mon_hoc.clear();
+    cachedData.lop_hoc.clear();
+    cachedData.submission_status.clear();
+
     if (cachedData.lich_hoc.length === 0) {
-        // Handle case where teacher has no classes
         renderDashboard();
         renderLopGiangDayTab();
         updateScheduleView();
@@ -81,7 +88,7 @@ async function loadAndRenderAll() {
         return;
     }
 
-    // 2. Derive unique IDs and populate maps
+    // 2. Process teaching assignments
     cachedData.lich_hoc.forEach(lh => {
         cachedData.unique_mon_hoc_ids.add(lh.mon_hoc_id);
         cachedData.unique_lop_ids.add(lh.lop_id);
@@ -96,29 +103,16 @@ async function loadAndRenderAll() {
         }
     });
 
-    // 3. Fetch all students from the assigned classes
+    // 3. Fetch students based on assigned classes
     const { data: studentData, error: studentError } = await supabaseClient
         .from('sinh_vien')
         .select('id, lop_id, ma_sv, ho_ten, email_dang_nhap, chuyen_nganh(ten_chuyen_nganh)')
         .in('lop_id', Array.from(cachedData.unique_lop_ids));
 
-    // 4. Fetch all grades for these students
-    const { data: diemData, error: diemError } = await supabaseClient
-        .from('diem')
-        .select('sinh_vien_id, mon_hoc_id, diem_chuyen_can, diem_giua_ky, diem_cuoi_ky, diem_so')
-        .in('sinh_vien_id', Array.from(cachedData.unique_sinh_vien_ids))
-        .in('mon_hoc_id', Array.from(cachedData.unique_mon_hoc_ids));
-
-    // 5. Fetch submission statuses
-    const { data: submissionData, error: submissionError } = await supabaseClient
-        .from('bang_diem_submission')
-        .select('mon_hoc_id, lop_id, da_gui')
-        .eq('giang_vien_id', currentTeacherId);
-
     if (studentError) return hienLoiApi(studentError, 'tải sinh viên');
     cachedData.sinh_vien = studentData || [];
 
-    // Calculate class sizes and total unique students
+    // 4. Process student data
     cachedData.sinh_vien.forEach(sv => {
         cachedData.unique_sinh_vien_ids.add(sv.id);
         if (cachedData.lop_hoc.has(sv.lop_id)) {
@@ -126,12 +120,23 @@ async function loadAndRenderAll() {
         }
     });
 
+    // 5. Fetch grades and submission statuses in parallel
+    const { data: submissionData, error: submissionError } = await supabaseClient
+        .from('bang_diem_submission')
+        .select('mon_hoc_id, lop_id, da_gui')
+        .eq('giang_vien_id', currentTeacherId);
+    const { data: diemData, error: diemError } = await supabaseClient
+        .from('diem')
+        .select('sinh_vien_id, mon_hoc_id, diem_chuyen_can, diem_giua_ky, diem_cuoi_ky, diem_so')
+        .in('sinh_vien_id', Array.from(cachedData.unique_sinh_vien_ids))
+        .in('mon_hoc_id', Array.from(cachedData.unique_mon_hoc_ids));
+
     if (diemError) return hienLoiApi(diemError, 'tải điểm');
     if (submissionError) return hienLoiApi(submissionError, 'tải trạng thái nộp điểm');
     cachedData.diem = diemData || [];
     (submissionData || []).forEach(s => cachedData.submission_status.set(`${s.mon_hoc_id}-${s.lop_id}`, s.da_gui));
 
-    // 6. Render all UI components
+    // 6. Render UI
     renderDashboard();
     renderLopGiangDayTab();
     updateScheduleView();
