@@ -704,7 +704,6 @@ async function approveSubmission(monHocId, lopId) {
 }
 
 // --- ROSTER MANAGEMENT MODAL ---
-
 function openRosterModal(lichHocId) {
     const lichHoc = cachedData.lich_hoc.find(lh => lh.id === lichHocId);
     if (!lichHoc) return alert('Không tìm thấy lịch học!');
@@ -712,20 +711,41 @@ function openRosterModal(lichHocId) {
     const lopId = lichHoc.lop_id;
     const monHoc = cachedData.mon_hoc.find(mh => mh.id === lichHoc.mon_hoc_id);
     if (!monHoc) return alert('Không tìm thấy môn học!');
-    
+
     const chuyenNganhId = monHoc.chuyen_nganh_id;
 
     // Set modal title
     document.getElementById('rosterModalTitle').innerText = `Quản lý Sĩ số: ${lichHoc.lop_hoc.ten_lop} - ${lichHoc.mon_hoc.ten_mon}`;
     document.getElementById('rosterLopId').value = lopId;
+    document.getElementById('rosterLichHocId').value = lichHocId; // Store for context
 
-    // Separate students
-    const enrolledStudents = cachedData.sinh_vien.filter(sv => sv.lop_id === lopId);
-    const availableStudents = cachedData.sinh_vien.filter(sv => sv.chuyen_nganh_id === chuyenNganhId && sv.lop_id !== lopId);
+    // Get all students in the same major
+    const studentsInMajor = cachedData.sinh_vien.filter(sv => sv.chuyen_nganh_id === chuyenNganhId);
 
-    // Populate lists
-    populateListbox('enrolledStudents', enrolledStudents);
-    populateListbox('availableStudents', availableStudents);
+    const studentListContainer = document.getElementById('rosterStudentList');
+    studentListContainer.innerHTML = ''; // Clear previous list
+
+    if (studentsInMajor.length === 0) {
+        studentListContainer.innerHTML = `<p class="text-center text-gray-500">Không có sinh viên nào trong chuyên ngành này.</p>`;
+    } else {
+        studentsInMajor.forEach(sv => {
+            const isEnrolled = sv.lop_id === lopId;
+            const canChange = sv.lop_id === lopId || sv.lop_id === null; // Can only add unassigned students or remove currently enrolled ones
+
+            const studentHtml = `
+                <label for="student-${sv.id}" class="flex items-center p-2 rounded-md hover:bg-gray-200 ${!canChange ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}">
+                    <input type="checkbox" id="student-${sv.id}" data-sv-id="${sv.id}" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" 
+                           ${isEnrolled ? 'checked' : ''} 
+                           ${!canChange ? 'disabled' : ''}>
+                    <span class="ml-3 text-sm text-gray-800">
+                        ${sv.ho_ten} (${sv.ma_sv})
+                        ${sv.lop_id && sv.lop_id !== lopId ? `<span class="text-xs text-red-600 ml-2">[Đã ở lớp ${cachedData.lop_hoc.find(l=>l.id===sv.lop_id)?.ten_lop || 'khác'}]</span>` : ''}
+                    </span>
+                </label>
+            `;
+            studentListContainer.innerHTML += studentHtml;
+        });
+    }
 
     // Show modal
     document.getElementById('manageRosterModal').classList.remove('hidden');
@@ -735,34 +755,17 @@ function closeRosterModal() {
     document.getElementById('manageRosterModal').classList.add('hidden');
 }
 
-function populateListbox(listId, students) {
-    const selectEl = document.getElementById(listId);
-    selectEl.innerHTML = students.map(sv => `<option value="${sv.id}">${sv.ho_ten} (${sv.ma_sv})</option>`).join('');
-}
-
-function moveStudents(sourceListId, destListId, type) {
-    const sourceList = document.getElementById(sourceListId);
-    const destList = document.getElementById(destListId);
-
-    let optionsToMove = [];
-    if (type === 'selected') {
-        optionsToMove = Array.from(sourceList.selectedOptions);
-    } else { // 'all'
-        optionsToMove = Array.from(sourceList.options);
-    }
-
-    optionsToMove.forEach(option => {
-        destList.appendChild(option);
-    });
-}
-
 async function saveRosterChanges() {
     const lopId = parseInt(document.getElementById('rosterLopId').value);
     if (!lopId) return alert('Lỗi: Không xác định được lớp học.');
-    
-    const enrolledList = document.getElementById('enrolledStudents');
-    const finalEnrolledIds = new Set(Array.from(enrolledList.options).map(opt => parseInt(opt.value)));
 
+    // Get final list of student IDs that should be in the class
+    const finalEnrolledIds = new Set();
+    document.querySelectorAll('#rosterStudentList input[type="checkbox"]:checked').forEach(checkbox => {
+        finalEnrolledIds.add(parseInt(checkbox.dataset.svId));
+    });
+
+    // Get initial list of student IDs that were in the class
     const initialEnrolledIds = new Set(
         cachedData.sinh_vien.filter(sv => sv.lop_id === lopId).map(sv => sv.id)
     );
@@ -771,9 +774,11 @@ async function saveRosterChanges() {
     const studentsToRemove = [...initialEnrolledIds].filter(id => !finalEnrolledIds.has(id));
 
     const promises = [];
+    // Batch update for students to add
     if (studentsToAdd.length > 0) {
         promises.push(supabaseClient.from('sinh_vien').update({ lop_id: lopId }).in('id', studentsToAdd));
     }
+    // Batch update for students to remove
     if (studentsToRemove.length > 0) {
         promises.push(supabaseClient.from('sinh_vien').update({ lop_id: null }).in('id', studentsToRemove));
     }
