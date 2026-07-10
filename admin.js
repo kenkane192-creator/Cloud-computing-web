@@ -4,6 +4,7 @@ const TABS = [
     { id: 'tai-khoan', name: 'Tổng quan Tài khoản' },
     { id: 'chuyen-nganh', name: 'Quản lý Chuyên Ngành' },
     { id: 'mon-hoc', name: 'Quản lý Môn Học' },
+    { id: 'lop-hoc', name: 'Quản lý Lớp SH' },
     { id: 'lich-hoc', name: 'Quản lý Lịch Học' },
     { id: 'duyet-diem', name: 'Duyệt Bảng Điểm' },
     { id: 'sinh-vien', name: 'Cấp tài khoản SV' },
@@ -114,6 +115,7 @@ async function loadAndRenderAll() {
     populateAllDropdowns();
     renderChuyenNganhTab();
     renderMonHocTab();
+    renderLopHocTab();
     renderLichHocTab();
     renderTaiKhoanTabs();
     renderDuyetDiemTab();
@@ -124,7 +126,6 @@ function populateAllDropdowns() {
     populateDropdowns('monHocChuyenNganh', cachedData.chuyen_nganh, 'id', 'ten_chuyen_nganh', '-- Chọn Chuyên ngành --');
     populateDropdowns('svChuyenNganh', cachedData.chuyen_nganh, 'id', 'ten_chuyen_nganh', '-- Chọn Chuyên ngành --');
     populateDropdowns('gvChuyenNganh', cachedData.chuyen_nganh, 'id', 'ten_chuyen_nganh', '-- Chọn Chuyên ngành --');
-    populateDropdowns('lichHocChuyenNganh', cachedData.chuyen_nganh, 'id', 'ten_chuyen_nganh', '-- Lọc GV theo chuyên ngành --');
     populateDropdowns('userChuyenNganhFilter', cachedData.chuyen_nganh, 'id', 'ten_chuyen_nganh', 'Tất cả chuyên ngành');
     populateDropdowns('lichHocMonHoc', cachedData.mon_hoc, 'id', 'ten_mon', '-- Chọn Môn học --');
     
@@ -138,6 +139,8 @@ function populateAllDropdowns() {
         });
         lichHocLopEl.innerHTML = optionsHtml;
     }
+    populateDropdowns('lopHocChuyenNganh', cachedData.chuyen_nganh, 'id', 'ten_chuyen_nganh', '-- Chọn Chuyên ngành --');
+    filterLopHocDropdown(); // Initialize student class dropdown
 }
 
 function populateDropdowns(selectId, data, valueField, textField, defaultOptionText) {
@@ -150,16 +153,48 @@ function populateDropdowns(selectId, data, valueField, textField, defaultOptionT
     selectEl.innerHTML = optionsHtml;
 }
 
-function filterGiangVienDropdown() {
-    const chuyenNganhId = document.getElementById('lichHocChuyenNganh').value;
-    const filteredGVs = chuyenNganhId ? cachedData.giang_vien.filter(gv => gv.chuyen_nganh_id == chuyenNganhId) : [];
+function handleMonHocSelectionChange() {
+    const monHocId = document.getElementById('lichHocMonHoc').value;
+    const lichHocLopEl = document.getElementById('lichHocLop');
+
+    if (!monHocId) {
+        populateDropdowns('lichHocGiangVien', [], 'id', 'ho_ten', '-- Chọn Môn học trước --');
+        lichHocLopEl.innerHTML = `<option value="">-- Chọn Môn học trước --</option>`;
+        return;
+    }
+
+    const selectedMonHoc = cachedData.mon_hoc.find(mh => mh.id == monHocId);
+    if (!selectedMonHoc) return;
+
+    const chuyenNganhId = selectedMonHoc.chuyen_nganh_id;
+
+    // Filter and populate teachers
+    const filteredGVs = cachedData.giang_vien.filter(gv => gv.chuyen_nganh_id == chuyenNganhId);
     populateDropdowns('lichHocGiangVien', filteredGVs, 'id', 'ho_ten', '-- Chọn Giảng viên --');
+
+    // Filter and populate classes
+    const filteredLops = cachedData.lop_hoc.filter(lop => lop.chuyen_nganh_id == chuyenNganhId);
+    let optionsHtml = `<option value="">-- Chọn Lớp & Loại hình --</option>`;
+    filteredLops.forEach(lop => {
+        optionsHtml += `<option value="${lop.id}-Lý thuyết">${lop.ten_lop} - Lý thuyết</option>`;
+        optionsHtml += `<option value="${lop.id}-Thực hành">${lop.ten_lop} - Thực hành</option>`;
+    });
+    lichHocLopEl.innerHTML = optionsHtml;
+}
+
+function filterLopHocDropdown() {
+    const chuyenNganhId = document.getElementById('svChuyenNganh').value;
+    const filteredLops = chuyenNganhId 
+        ? cachedData.lop_hoc.filter(lop => lop.chuyen_nganh_id == chuyenNganhId) 
+        : [];
+    populateDropdowns('svLopHoc', filteredLops, 'id', 'ten_lop', '-- Chọn Lớp Sinh Hoạt --');
 }
 
 function createActionButtons(id, deleteFnName, editFnName = null) {
     return `
         <div class="flex item-center justify-center space-x-4">
             <button class="w-5 h-5 text-gray-500 hover:text-blue-600">
+            <button ${editFnName ? `onclick="${editFnName}(${id})"` : 'disabled'} class="w-5 h-5 text-gray-500 ${editFnName ? 'hover:text-blue-600' : 'cursor-not-allowed opacity-50'}">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
                 </svg>
@@ -302,6 +337,39 @@ async function xoaMonHoc(id) {
     await loadAndRenderAll();
 }
 
+// --- LỚP HỌC (LỚP SINH HOẠT) ---
+function renderLopHocTab() {
+    const tbody = document.getElementById('tblLopHoc');
+    if (!tbody) return;
+    tbody.innerHTML = cachedData.lop_hoc.map(lh => `
+        <tr class="hover:bg-gray-50">
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${lh.id}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${lh.ten_lop}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${lh.chuyen_nganh?.ten_chuyen_nganh || 'N/A'}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-center">${createActionButtons(lh.id, 'xoaLopHoc')}</td>
+        </tr>
+    `).join('');
+}
+
+async function themLopHoc() {
+    const ten = document.getElementById('tenLopHoc').value.trim();
+    const chuyenNganhId = document.getElementById('lopHocChuyenNganh').value;
+    if (!ten || !chuyenNganhId) return alert('Vui lòng nhập tên lớp và chọn chuyên ngành!');
+    
+    const { error } = await supabaseClient.from('lop_hoc').insert([{ ten_lop: ten, chuyen_nganh_id: chuyenNganhId }]);
+    if (error) return alert('Lỗi: ' + error.message);
+    
+    document.getElementById('tenLopHoc').value = '';
+    await loadAndRenderAll();
+}
+
+async function xoaLopHoc(id) {
+    if (!confirm(`Bạn có chắc chắn muốn xóa lớp học có ID=${id}? Hành động này sẽ xóa các lịch học liên quan và gỡ sinh viên khỏi lớp.`)) return;
+    const { error } = await supabaseClient.from('lop_hoc').delete().eq('id', id);
+    if (error) return alert('Lỗi: ' + error.message);
+    await loadAndRenderAll();
+}
+
 // --- LỊCH HỌC ---
 function renderLichHocTab() {
     const WEEKDAYS = { 1: 'Thứ 2', 2: 'Thứ 3', 3: 'Thứ 4', 4: 'Thứ 5', 5: 'Thứ 6', 6: 'Thứ 7', 7: 'Chủ Nhật' };
@@ -312,7 +380,7 @@ function renderLichHocTab() {
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${lh.lop_hoc.ten_lop}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${WEEKDAYS[lh.ngay_trong_tuan]} - Ca ${lh.ca_hoc} (${lh.loai_hinh || 'N/A'})</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${lh.giang_vien.ho_ten}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-center">${createActionButtons(lh.id, 'xoaLichHoc')}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-center">${createActionButtons(lh.id, 'xoaLichHoc', 'openRosterModal')}</td>
         </tr>
     `).join('');
 }
@@ -359,10 +427,13 @@ async function xoaLichHoc(id) {
 async function taoTaiKhoanSV() {
     const [ma_sv, ho_ten, email, password, chuyen_nganh_id] = 
         ['svMa', 'svTen', 'svEmail', 'svPassword', 'svChuyenNganh'].map(id => document.getElementById(id).value.trim());
+    const [ma_sv, ho_ten, email, password, chuyen_nganh_id, lop_id] = 
+        ['svMa', 'svTen', 'svEmail', 'svPassword', 'svChuyenNganh', 'svLopHoc'].map(id => document.getElementById(id).value.trim());
     const msg = document.getElementById('sv-msg');
     
     try {
         if (!ma_sv || !ho_ten || !email || !password || !chuyen_nganh_id) throw new Error('Vui lòng điền đầy đủ thông tin.');
+        if (!ma_sv || !ho_ten || !email || !password || !chuyen_nganh_id || !lop_id) throw new Error('Vui lòng điền đầy đủ thông tin, bao gồm cả Lớp Sinh Hoạt.');
         if (email.startsWith('admin') || email.startsWith('gv')) throw new Error('Email sinh viên không hợp lệ.');
         
         msg.style.color = 'blue'; msg.innerText = 'Đang tạo...';
@@ -376,12 +447,14 @@ async function taoTaiKhoanSV() {
             const { error: profileError } = await supabaseClient
                 .from('sinh_vien')
                 .insert([{ ma_sv, ho_ten, email_dang_nhap: email, chuyen_nganh_id, user_id: authData.user.id }]);
+                .insert([{ ma_sv, ho_ten, email_dang_nhap: email, chuyen_nganh_id, lop_id, user_id: authData.user.id }]);
             if (profileError) throw new Error('Tài khoản đã tạo, nhưng lưu hồ sơ SV thất bại: ' + profileError.message);
         }
 
         msg.style.color = 'green';
         msg.innerText = 'Tạo tài khoản SV thành công: ' + authData.user.email;
         ['svMa', 'svTen', 'svEmail', 'svPassword', 'svChuyenNganh'].forEach(id => document.getElementById(id).value = '');
+        ['svMa', 'svTen', 'svEmail', 'svPassword', 'svChuyenNganh', 'svLopHoc'].forEach(id => document.getElementById(id).value = '');
         await loadAndRenderAll();
 
     } catch (e) {
@@ -446,9 +519,12 @@ function renderTaiKhoanTabs() {
         vai_tro: 'sinh_vien',
         email: user.email_dang_nhap,
         chuyen_nganh_id: user.chuyen_nganh_id,
+        lop_id: user.lop_id,
         lop_ten: user.lop_hoc?.ten_lop,
         chuyen_nganh_ten: user.chuyen_nganh?.ten_chuyen_nganh || 'N/A',
         deleteFn: 'xoaSinhVien'
+        deleteFn: 'xoaSinhVien',
+        editFn: 'moSuaSinhVienModal'
     }));
 
     cachedData.combinedUsers = [...giangVienMapped, ...sinhVienMapped].sort((a, b) => a.ho_ten.localeCompare(b.ho_ten));
@@ -482,6 +558,7 @@ function renderCombinedUserTable() {
                 <td class="py-3 px-6 text-left">${user.chuyen_nganh_ten}</td>
                 <td class="py-3 px-6 text-left">${user.lop_ten || ''}</td>
                 <td class="py-3 px-6 text-center">${createActionButtons(user.id, user.deleteFn)}</td>
+                <td class="py-3 px-6 text-center">${createActionButtons(user.id, user.deleteFn, user.editFn)}</td>
             </tr>
         `;
     }).join('');
@@ -495,6 +572,7 @@ function renderSinhVienTable(data) {
             <td class="px-6 py-4 text-sm">${sv.chuyen_nganh?.ten_chuyen_nganh || 'N/A'}</td>
             <td class="px-6 py-4 text-sm">${sv.lop_hoc?.ten_lop || 'N/A'}</td>
             <td class="px-6 py-4 text-center">${createActionButtons(sv.id, 'xoaSinhVien')}</td>
+            <td class="px-6 py-4 text-center">${createActionButtons(sv.id, 'xoaSinhVien', 'moSuaSinhVienModal')}</td>
         </tr>
     `).join(''));
 }
@@ -528,6 +606,60 @@ async function xoaSinhVien(id) {
     const { error } = await supabaseClient.from('sinh_vien').delete().eq('id', id);
     if (error) return alert(`Lỗi: ${error.message}`);
     await loadAndRenderAll();
+}
+
+// --- STUDENT EDIT MODAL ---
+function moSuaSinhVienModal(studentId) {
+    const student = cachedData.sinh_vien.find(sv => sv.id === studentId);
+    if (!student) {
+        alert('Không tìm thấy thông tin sinh viên!');
+        return;
+    }
+
+    // Populate modal with student data
+    document.getElementById('editStudentId').value = student.id;
+    document.getElementById('editStudentName').value = student.ho_ten;
+    document.getElementById('editStudentMaSV').value = student.ma_sv;
+
+    // Populate and set major dropdown
+    populateDropdowns('editStudentChuyenNganh', cachedData.chuyen_nganh, 'id', 'ten_chuyen_nganh', '-- Chọn Chuyên ngành --');
+    document.getElementById('editStudentChuyenNganh').value = student.chuyen_nganh_id;
+
+    // Populate and set class dropdown based on the selected major
+    filterEditModalLopDropdown();
+    document.getElementById('editStudentLopHoc').value = student.lop_id;
+
+    // Show the modal
+    document.getElementById('editStudentModal').classList.remove('hidden');
+}
+
+function closeEditStudentModal() {
+    document.getElementById('editStudentModal').classList.add('hidden');
+}
+
+function filterEditModalLopDropdown() {
+    const chuyenNganhId = document.getElementById('editStudentChuyenNganh').value;
+    const filteredLops = chuyenNganhId 
+        ? cachedData.lop_hoc.filter(lop => lop.chuyen_nganh_id == chuyenNganhId) 
+        : [];
+    populateDropdowns('editStudentLopHoc', filteredLops, 'id', 'ten_lop', '-- Chọn Lớp Sinh Hoạt --');
+}
+
+async function luuThayDoiSinhVien() {
+    const studentId = document.getElementById('editStudentId').value;
+    const chuyenNganhId = document.getElementById('editStudentChuyenNganh').value;
+    const lopId = document.getElementById('editStudentLopHoc').value;
+
+    if (!chuyenNganhId || !lopId) {
+        return alert('Vui lòng chọn đầy đủ chuyên ngành và lớp học.');
+    }
+
+    const { error } = await supabaseClient.from('sinh_vien').update({ chuyen_nganh_id: chuyenNganhId, lop_id: lopId }).eq('id', studentId);
+    if (error) return alert('Lỗi khi cập nhật thông tin sinh viên: ' + error.message);
+
+    alert('Cập nhật thông tin sinh viên thành công!');
+    closeEditStudentModal();
+    await loadAndRenderAll(); // Refresh data
 }
 
 // --- APPROVAL MODAL ---
@@ -578,6 +710,77 @@ async function approveSubmission(monHocId, lopId) {
     alert('Duyệt bảng điểm thành công!');
     closeApprovalModal();
     await loadAndRenderAll(); // Refresh all data
+}
+
+// --- ROSTER MANAGEMENT MODAL ---
+
+function openRosterModal(lichHocId) {
+    const lichHoc = cachedData.lich_hoc.find(lh => lh.id === lichHocId);
+    if (!lichHoc) return alert('Không tìm thấy lịch học!');
+
+    const lopId = lichHoc.lop_id;
+    const monHoc = cachedData.mon_hoc.find(mh => mh.id === lichHoc.mon_hoc_id);
+    if (!monHoc) return alert('Không tìm thấy môn học!');
+    
+    const chuyenNganhId = monHoc.chuyen_nganh_id;
+
+    // Set modal title
+    document.getElementById('rosterModalTitle').innerText = `Quản lý Sĩ số: ${lichHoc.lop_hoc.ten_lop} - ${lichHoc.mon_hoc.ten_mon}`;
+    document.getElementById('rosterLopId').value = lopId;
+
+    // Separate students
+    const enrolledStudents = cachedData.sinh_vien.filter(sv => sv.lop_id === lopId);
+    const availableStudents = cachedData.sinh_vien.filter(sv => sv.chuyen_nganh_id === chuyenNganhId && (sv.lop_id !== lopId && sv.lop_id !== null));
+
+    // Populate lists
+    populateListbox('enrolledStudents', enrolledStudents);
+    populateListbox('availableStudents', availableStudents);
+
+    // Show modal
+    document.getElementById('manageRosterModal').classList.remove('hidden');
+}
+
+function closeRosterModal() {
+    document.getElementById('manageRosterModal').classList.add('hidden');
+}
+
+function populateListbox(listId, students) {
+    const selectEl = document.getElementById(listId);
+    selectEl.innerHTML = students.map(sv => `<option value="${sv.id}">${sv.ho_ten} (${sv.ma_sv})</option>`).join('');
+}
+
+function moveStudents(sourceListId, destListId, type) {
+    const sourceList = document.getElementById(sourceListId);
+    const destList = document.getElementById(destListId);
+
+    let optionsToMove = [];
+    if (type === 'selected') {
+        optionsToMove = Array.from(sourceList.selectedOptions);
+    } else { // 'all'
+        optionsToMove = Array.from(sourceList.options);
+    }
+
+    optionsToMove.forEach(option => {
+        destList.appendChild(option);
+    });
+}
+
+async function saveRosterChanges() {
+    const lopId = parseInt(document.getElementById('rosterLopId').value);
+    if (!lopId) return alert('Lỗi: Không xác định được lớp học.');
+
+    const enrolledList = document.getElementById('enrolledStudents');
+    const finalEnrolledIds = Array.from(enrolledList.options).map(opt => parseInt(opt.value));
+
+    const updates = finalEnrolledIds.map(id => ({ id: id, lop_id: lopId }));
+
+    const { error } = await supabaseClient.from('sinh_vien').upsert(updates, { onConflict: 'id' });
+
+    if (error) return alert('Lỗi khi cập nhật sĩ số lớp: ' + error.message);
+
+    alert('Cập nhật sĩ số lớp thành công!');
+    closeRosterModal();
+    await loadAndRenderAll();
 }
 
 async function xoaGiangVien(id) {
