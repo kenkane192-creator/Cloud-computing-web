@@ -182,7 +182,7 @@ function renderMonHocTab() {
             statusHtml = `<span class="bg-blue-200 text-blue-700 py-1 px-3 rounded-full text-xs font-semibold">Đang học</span>`;
         }
 
-        const lichHocStr = `${WEEKDAYS[lh.ngay_trong_tuan]} (Ca ${lh.ca_hoc}) - P.${lh.phong_hoc || 'N/A'}`;
+        const lichHocStr = `${WEEKDAYS[lh.ngay_trong_tuan]} (Ca ${lh.ca_hoc}) - P.${lh.phong_hoc || 'N/A'} (${lh.loai_hinh || 'N/A'})`;
 
         html += `<tr class="border-b border-gray-200 hover:bg-gray-50">
             <td class="py-3 px-6 text-left font-medium">${lh.mon_hoc.ten_mon}</td>
@@ -252,9 +252,10 @@ function renderEventCard(event) {
     const courseName = event.mon_hoc?.ten_mon || 'N/A';
     const teacherName = event.giang_vien?.ho_ten || 'N/A';
     const homeroomClassName = event.lop_hoc?.ten_lop || 'N/A';
+    const loaiHinh = event.loai_hinh || '';
 
     card.innerHTML = `
-        <div class="font-bold">${courseName}</div>
+        <div class="font-bold">${loaiHinh}: ${courseName}</div>
         <div class="text-xs">Lớp: ${homeroomClassName}</div>
         <div class="text-xs">GV: ${teacherName}</div>
         <div class="text-xs">Phòng: ${event.phong_hoc || 'N/A'}</div>

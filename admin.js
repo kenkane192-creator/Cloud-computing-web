@@ -300,7 +300,7 @@ function renderLichHocTab() {
         <tr class="hover:bg-gray-50">
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${lh.mon_hoc.ten_mon}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${lh.lop_hoc.ten_lop}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${WEEKDAYS[lh.ngay_trong_tuan]} - Ca ${lh.ca_hoc}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${WEEKDAYS[lh.ngay_trong_tuan]} - Ca ${lh.ca_hoc} (${lh.loai_hinh || 'N/A'})</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${lh.giang_vien.ho_ten}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-center">${createActionButtons(lh.id, 'xoaLichHoc')}</td>
         </tr>
@@ -314,11 +314,12 @@ async function themLichHoc() {
         giang_vien_id: document.getElementById('lichHocGiangVien').value,
         ngay_trong_tuan: document.getElementById('ngayTrongTuan').value,
         ca_hoc: document.getElementById('caHoc').value,
+        loai_hinh: document.getElementById('loaiHinh').value,
         phong_hoc: document.getElementById('phongHoc').value.trim(),
     };
 
     for (const key in lichHoc) {
-        if (!lichHoc[key] && key !== 'phong_hoc') {
+        if (!lichHoc[key]) {
             return alert(`Vui lòng điền đầy đủ thông tin! Thiếu: ${key}`);
         }
     }

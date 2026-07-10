@@ -173,7 +173,7 @@ function renderLopGiangDayTab() {
     tbody.innerHTML = cachedData.lich_hoc.map(lh => {
         const lopInfo = cachedData.lop_hoc.get(lh.lop_id);
         const monHocInfo = cachedData.mon_hoc.get(lh.mon_hoc_id);
-        const lichHocStr = `${WEEKDAYS[lh.ngay_trong_tuan]} (Ca ${lh.ca_hoc}) - P.${lh.phong_hoc || 'N/A'}`;
+        const lichHocStr = `${WEEKDAYS[lh.ngay_trong_tuan]} (Ca ${lh.ca_hoc}) - P.${lh.phong_hoc || 'N/A'} (${lh.loai_hinh || 'N/A'})`;
 
         return `
             <tr class="border-b border-gray-200 hover:bg-gray-100">
@@ -241,9 +241,10 @@ function renderEventCard(event) {
     
     const courseName = cachedData.mon_hoc.get(event.mon_hoc_id)?.ten_mon || 'N/A';
     const className = cachedData.lop_hoc.get(event.lop_id)?.ten_lop || 'N/A';
+    const loaiHinh = event.loai_hinh || '';
 
     card.innerHTML = `
-        <div class="font-bold">${courseName}</div>
+        <div class="font-bold">${loaiHinh}: ${courseName}</div>
         <div class="room">Phòng: ${event.phong_hoc || 'N/A'}</div>
         <div class="class-id">Lớp: ${className || 'N/A'}</div>
     `;
