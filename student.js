@@ -212,7 +212,8 @@ async function taiLichHoc(lopId) {
         .select(`
             *,
             mon_hoc ( id, ten_mon ),
-            giang_vien ( ho_ten )
+            giang_vien ( ho_ten ),
+            lop_hoc ( ten_lop )
         `)
         .eq('lop_id', lopId);
         
@@ -250,9 +251,11 @@ function renderEventCard(event) {
     
     const courseName = event.mon_hoc?.ten_mon || 'N/A';
     const teacherName = event.giang_vien?.ho_ten || 'N/A';
+    const homeroomClassName = event.lop_hoc?.ten_lop || 'N/A';
 
     card.innerHTML = `
         <div class="font-bold">${courseName}</div>
+        <div class="text-xs">Lớp: ${homeroomClassName}</div>
         <div class="text-xs">GV: ${teacherName}</div>
         <div class="text-xs">Phòng: ${event.phong_hoc || 'N/A'}</div>
     `;

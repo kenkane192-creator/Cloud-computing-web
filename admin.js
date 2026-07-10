@@ -85,9 +85,9 @@ async function loadAndRenderAll() {
     ] = await Promise.all([
         supabaseClient.from('chuyen_nganh').select('*').order('id', { ascending: true }),
         supabaseClient.from('mon_hoc').select('*, chuyen_nganh(ten_chuyen_nganh)').order('id', { ascending: true }),
-        supabaseClient.from('lop_hoc').select('*'),
+        supabaseClient.from('lop_hoc').select('*, chuyen_nganh(ten_chuyen_nganh)').order('id', { ascending: true }),
         supabaseClient.from('giang_vien').select('*, chuyen_nganh(ten_chuyen_nganh)').order('id', { ascending: true }),
-        supabaseClient.from('sinh_vien').select('*, chuyen_nganh(ten_chuyen_nganh)').order('id', { ascending: true }),
+        supabaseClient.from('sinh_vien').select('*, chuyen_nganh(ten_chuyen_nganh), lop_hoc(ten_lop)').order('id', { ascending: true }),
         supabaseClient.from('lich_hoc').select('*, mon_hoc(ten_mon), lop_hoc(ten_lop), giang_vien(ho_ten)').order('id', { ascending: true }),
         supabaseClient.from('bang_diem_submission').select('*, mon_hoc(ten_mon), lop_hoc(ten_lop), giang_vien(ho_ten)').order('ngay_gui', { ascending: false })
     ]);
@@ -253,7 +253,7 @@ async function themChuyenNganh() {
 }
 
 async function xoaChuyenNganh(id) {
-    if (!confirm(`Bạn có chắc chắn muốn xóa chuyên ngành có ID=${id}? Hành động này không thể hoàn tác.`)) return;
+    if (!confirm(`Bạn có chắc chắn muốn xóa chuyên ngành có ID=${id}? CẢNH BÁO: Hành động này sẽ xóa tất cả Môn học và Lớp học thuộc chuyên ngành này. Không thể hoàn tác.`)) return;
     const { error } = await supabaseClient.from('chuyen_nganh').delete().eq('id', id);
     if (error) return alert('Lỗi: ' + error.message);
     await loadAndRenderAll();
@@ -286,7 +286,7 @@ async function themMonHoc() {
 }
 
 async function xoaMonHoc(id) {
-    if (!confirm(`Bạn có chắc chắn muốn xóa môn học có ID=${id}?`)) return;
+    if (!confirm(`Bạn có chắc chắn muốn xóa môn học có ID=${id}? Hành động này sẽ xóa toàn bộ lịch học và điểm số liên quan đến môn này.`)) return;
     const { error } = await supabaseClient.from('mon_hoc').delete().eq('id', id);
     if (error) return alert('Lỗi: ' + error.message);
     await loadAndRenderAll();
@@ -429,6 +429,7 @@ function renderTaiKhoanTabs() {
         vai_tro: 'sinh_vien',
         email: user.email_dang_nhap,
         chuyen_nganh_id: user.chuyen_nganh_id,
+        lop_ten: user.lop_hoc?.ten_lop,
         chuyen_nganh_ten: user.chuyen_nganh?.ten_chuyen_nganh || 'N/A',
         deleteFn: 'xoaSinhVien'
     }));
@@ -462,18 +463,20 @@ function renderCombinedUserTable() {
                 <td class="py-3 px-6 text-center">${roleText}</td>
                 <td class="py-3 px-6 text-left">${user.email}</td>
                 <td class="py-3 px-6 text-left">${user.chuyen_nganh_ten}</td>
+                <td class="py-3 px-6 text-left">${user.lop_ten || ''}</td>
                 <td class="py-3 px-6 text-center">${createActionButtons(user.id, user.deleteFn)}</td>
             </tr>
         `;
     }).join('');
 }
 function renderSinhVienTable(data) {
-    return createTable(['Mã SV', 'Họ Tên', 'Email', 'Chuyên Ngành', 'Hành Động'], data.map(sv => `
+    return createTable(['Mã SV', 'Họ Tên', 'Email', 'Chuyên Ngành', 'Lớp', 'Hành Động'], data.map(sv => `
         <tr class="hover:bg-gray-50">
             <td class="px-6 py-4 text-sm">${sv.ma_sv}</td>
             <td class="px-6 py-4 text-sm font-medium">${sv.ho_ten}</td>
             <td class="px-6 py-4 text-sm">${sv.email_dang_nhap}</td>
             <td class="px-6 py-4 text-sm">${sv.chuyen_nganh?.ten_chuyen_nganh || 'N/A'}</td>
+            <td class="px-6 py-4 text-sm">${sv.lop_hoc?.ten_lop || 'N/A'}</td>
             <td class="px-6 py-4 text-center">${createActionButtons(sv.id, 'xoaSinhVien')}</td>
         </tr>
     `).join(''));
@@ -504,7 +507,7 @@ function createTable(headers, rowsHtml) {
 }
 
 async function xoaSinhVien(id) {
-    if (!confirm(`Bạn có chắc muốn xóa sinh viên có ID=${id}? Việc này sẽ xóa hồ sơ nhưng không xóa tài khoản login.`)) return;
+    if (!confirm(`Bạn có chắc muốn xóa sinh viên có ID=${id}? Hành động này sẽ xóa vĩnh viễn cả hồ sơ và tài khoản đăng nhập của họ.`)) return;
     const { error } = await supabaseClient.from('sinh_vien').delete().eq('id', id);
     if (error) return alert(`Lỗi: ${error.message}`);
     await loadAndRenderAll();
@@ -561,7 +564,7 @@ async function approveSubmission(monHocId, lopId) {
 }
 
 async function xoaGiangVien(id) {
-    if (!confirm(`Bạn có chắc muốn xóa giảng viên có ID=${id}? Việc này sẽ xóa hồ sơ nhưng không xóa tài khoản login.`)) return;
+    if (!confirm(`Bạn có chắc muốn xóa giảng viên có ID=${id}? Hành động này sẽ xóa vĩnh viễn hồ sơ, tài khoản đăng nhập và toàn bộ lịch dạy của họ.`)) return;
     const { error } = await supabaseClient.from('giang_vien').delete().eq('id', id);
     if (error) return alert(`Lỗi: ${error.message}`);
     await loadAndRenderAll();

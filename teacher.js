@@ -106,7 +106,8 @@ async function loadAndRenderAll() {
     const { data: diemData, error: diemError } = await supabaseClient
         .from('diem')
         .select('sinh_vien_id, mon_hoc_id, diem_chuyen_can, diem_giua_ky, diem_cuoi_ky, diem_so')
-        .in('sinh_vien_id', Array.from(cachedData.unique_sinh_vien_ids));
+        .in('sinh_vien_id', Array.from(cachedData.unique_sinh_vien_ids))
+        .in('mon_hoc_id', Array.from(cachedData.unique_mon_hoc_ids));
 
     // 5. Fetch submission statuses
     const { data: submissionData, error: submissionError } = await supabaseClient
