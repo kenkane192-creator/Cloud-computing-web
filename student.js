@@ -1,4 +1,11 @@
 // --- STATE MANAGEMENT ---
+const TABS = [
+    { id: 'dashboard', name: 'Bảng điều khiển', icon: '<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25h2.25A2.25 2.25 0 0120.25 6v2.25a2.25 2.25 0 01-2.25 2.25h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25h2.25a2.25 2.25 0 012.25 2.25v2.25a2.25 2.25 0 01-2.25 2.25h-2.25a2.25 2.25 0 01-2.25-2.25v-2.25z"></path></svg>' },
+    { id: 'monHoc', name: 'Môn học', icon: '<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v11.494m-9-5.747h18"></path></svg>' },
+    { id: 'lichHoc', name: 'Lịch học', icon: '<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0h18M-4.5 12h22.5"></path></svg>' },
+    { id: 'ketQua', name: 'Bảng điểm', icon: '<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>' },
+    { id: 'hoSo', name: 'Hồ sơ cá nhân', icon: '<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"></path></svg>' },
+];
 let scheduleInitialized = false;
 let cachedData = { 
     mon_hoc: new Map(),
@@ -13,28 +20,55 @@ let colorIndex = 0;
 window.onload = async function() {
     const session = await yeuCauPhien('sv');
     if (!session) return;
-    
-    // Initialize tab buttons
-    document.querySelectorAll('.tab-btn-tailwind').forEach(button => {
-        button.classList.add('whitespace-nowrap', 'py-4', 'px-1', 'border-b-2', 'font-medium', 'text-sm', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300', 'mr-4', 'cursor-pointer', 'border-transparent');
-    });
 
+    setupTabs();
     loadStudentProfile(session.user);
     showTab('dashboard'); // Default to dashboard
 };
 
-function showTab(tabId) {
-    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-    document.querySelectorAll('.tab-btn-tailwind').forEach(btn => {
-        btn.classList.remove('text-indigo-600', 'border-indigo-500');
-        btn.classList.add('text-gray-500', 'border-transparent');
+function setupTabs() {
+    const nav = document.getElementById('student-tab-nav');
+    nav.innerHTML = '';
+    TABS.forEach(tab => {
+        const a = document.createElement('a');
+        a.href = '#';
+        a.id = `btn-${tab.id}`;
+        a.className = 'flex items-center space-x-3 rounded-md p-3 text-gray-600 hover:bg-gray-100 font-medium';
+        a.innerHTML = `${tab.icon}<span>${tab.name}</span>`;
+        a.onclick = (e) => {
+            e.preventDefault();
+            showTab(tab.id);
+        };
+        nav.appendChild(a);
     });
-    
-    document.getElementById(tabId).classList.add('active');
-    const activeBtn = document.getElementById('btn' + tabId.charAt(0).toUpperCase() + tabId.slice(1));
-    if (activeBtn) {
-        activeBtn.classList.remove('text-gray-500', 'border-transparent');
-        activeBtn.classList.add('text-indigo-600', 'border-indigo-500');
+}
+
+function showTab(tabId) {
+    // 1. Hide all tab content panels
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+
+    // 2. Un-style all sidebar buttons
+    TABS.forEach(tab => {
+        const button = document.getElementById(`btn-${tab.id}`);
+        if (button) {
+            button.classList.remove('bg-blue-100', 'text-blue-700', 'font-semibold');
+            button.classList.add('text-gray-600', 'hover:bg-gray-100');
+        }
+    });
+
+    // 3. Show the target content panel
+    const activeContent = document.getElementById(tabId);
+    if (activeContent) {
+        activeContent.classList.add('active');
+    }
+
+    // 4. Style the target sidebar button
+    const activeButton = document.getElementById(`btn-${tabId}`);
+    if (activeButton) {
+        activeButton.classList.remove('text-gray-600', 'hover:bg-gray-100');
+        activeButton.classList.add('bg-blue-100', 'text-blue-700', 'font-semibold');
     }
 
     // Initialize schedule on first view
@@ -43,6 +77,7 @@ function showTab(tabId) {
         // so we just need to ensure the tab is visible.
         scheduleInitialized = true;
     }
+
     if (tabId === 'dashboard') {
         renderDashboard();
     }

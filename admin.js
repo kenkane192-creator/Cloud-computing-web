@@ -1,14 +1,14 @@
 // --- CONFIG & STATE ---
 const TABS = [
-    { id: 'dashboard', name: 'Bảng điều khiển' },
-    { id: 'tai-khoan', name: 'Tổng quan Tài khoản' },
-    { id: 'chuyen-nganh', name: 'Quản lý Chuyên Ngành' },
-    { id: 'mon-hoc', name: 'Quản lý Môn Học' },
-    { id: 'lop-hoc', name: 'Quản lý Lớp SH' },
-    { id: 'lich-hoc', name: 'Quản lý Lịch Học' },
-    { id: 'duyet-diem', name: 'Duyệt Bảng Điểm' },
-    { id: 'sinh-vien', name: 'Cấp tài khoản SV' },
-    { id: 'giang-vien', name: 'Cấp tài khoản GV' },
+    { id: 'dashboard', name: 'Bảng điều khiển', icon: '<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25h2.25A2.25 2.25 0 0120.25 6v2.25a2.25 2.25 0 01-2.25 2.25h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25h2.25a2.25 2.25 0 012.25 2.25v2.25a2.25 2.25 0 01-2.25 2.25h-2.25a2.25 2.25 0 01-2.25-2.25v-2.25z"></path></svg>' },
+    { id: 'tai-khoan', name: 'Tổng quan Tài khoản', icon: '<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-4.67c.12-.318.239-.636.354-.96M15 19.128a2.25 2.25 0 01-2.25-2.25v-6.75a2.25 2.25 0 012.25-2.25h.003l.001 0a2.25 2.25 0 012.25 2.25v6.75a2.25 2.25 0 01-2.25 2.25h-.003l-.001 0z"></path></svg>' },
+    { id: 'chuyen-nganh', name: 'Quản lý Chuyên Ngành', icon: '<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0l-.04.001m15.482 0l.04-.001m-15.482 0A2.25 2.25 0 015.91 8.25h12.18a2.25 2.25 0 012.15 1.897m-15.482 0A2.25 2.25 0 005.91 12h12.18a2.25 2.25 0 002.15-1.897m-15.482 0l.04.001m15.482 0l-.04-.001"></path></svg>' },
+    { id: 'mon-hoc', name: 'Quản lý Môn Học', icon: '<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v11.494m-9-5.747h18"></path></svg>' },
+    { id: 'lop-hoc', name: 'Quản lý Lớp SH', icon: '<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.962a3.75 3.75 0 015.25 0m-5.25 0a3.75 3.75 0 00-5.25 0M3 13.5a3 3 0 013-3h1.5a.75.75 0 01.75.75v1.5a.75.75 0 01-.75.75H3a3 3 0 01-3-3zm18 0a3 3 0 00-3-3h-1.5a.75.75 0 00-.75.75v1.5a.75.75 0 00.75.75H21a3 3 0 003-3zm-9-3.75h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z"></path></svg>' },
+    { id: 'lich-hoc', name: 'Quản lý Lịch Học', icon: '<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0h18M-4.5 12h22.5"></path></svg>' },
+    { id: 'duyet-diem', name: 'Duyệt Bảng Điểm', icon: '<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>' },
+    { id: 'sinh-vien', name: 'Cấp tài khoản SV', icon: '<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766z"></path></svg>' },
+    { id: 'giang-vien', name: 'Cấp tài khoản GV', icon: '<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766z"></path></svg>' },
 ];
 let cachedData = {
     giang_vien: [],
@@ -31,7 +31,7 @@ window.onload = async function() {
     await loadAndRenderAll(); // New master function
     
     // Default to the first tab
-    switchTab(TABS[0].id); 
+    showTab(TABS[0].id); 
 };
 
 // --- UI SETUP ---
@@ -42,30 +42,43 @@ function setupTabs() {
         const a = document.createElement('a');
         a.href = '#';
         a.id = `btn-tab-${tab.id}`;
-        a.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300';
-        a.textContent = tab.name;
+        a.className = 'flex items-center space-x-3 rounded-md p-3 text-gray-600 hover:bg-gray-100 font-medium';
+        a.innerHTML = `${tab.icon}<span>${tab.name}</span>`;
         a.onclick = (e) => {
             e.preventDefault();
-            switchTab(tab.id);
+            showTab(tab.id);
         };
         nav.appendChild(a);
     });
 }
 
-function switchTab(tabId) {
+function showTab(tabId) {
+    // 1. Hide all tab content panels
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+
+    // 2. Un-style all sidebar buttons
     TABS.forEach(tab => {
-        const content = document.getElementById(`tab-${tab.id}`);
         const button = document.getElementById(`btn-tab-${tab.id}`);
-        if (tab.id === tabId) {
-            content.classList.add('active');
-            button.classList.remove('text-gray-500', 'border-transparent');
-            button.classList.add('text-indigo-600', 'border-indigo-500');
-        } else {
-            content.classList.remove('active');
-            button.classList.remove('text-indigo-600', 'border-indigo-500');
-            button.classList.add('text-gray-500', 'border-transparent');
+        if (button) {
+            button.classList.remove('bg-blue-100', 'text-blue-700', 'font-semibold');
+            button.classList.add('text-gray-600', 'hover:bg-gray-100');
         }
     });
+
+    // 3. Show the target content panel
+    const activeContent = document.getElementById(`tab-${tabId}`);
+    if (activeContent) {
+        activeContent.classList.add('active');
+    }
+
+    // 4. Style the target sidebar button
+    const activeButton = document.getElementById(`btn-tab-${tabId}`);
+    if (activeButton) {
+        activeButton.classList.remove('text-gray-600', 'hover:bg-gray-100');
+        activeButton.classList.add('bg-blue-100', 'text-blue-700', 'font-semibold');
+    }
 
     // Refresh dashboard every time it's viewed
     if (tabId === 'dashboard') {
