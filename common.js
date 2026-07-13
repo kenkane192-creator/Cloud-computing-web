@@ -18,11 +18,11 @@ function hienLoiApi(error, context) {
 
 function chuyenHuongTheoEmail(email) {
     if (email.startsWith('admin')) {
-        window.location.href = "admin.html";
+        window.location.href = "/admin.html";
     } else if (email.startsWith('gv') || email.includes('teacher')) {
-        window.location.href = "teacher.html";
+        window.location.href = "/teacher.html";
     } else {
-        window.location.href = "student.html";
+        window.location.href = "/student.html";
     }
 }
 
@@ -39,7 +39,7 @@ async function yeuCauPhien(vaiTro) {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session) {
         alert('Vui lòng đăng nhập!');
-        window.location.href = 'login.html';
+        window.location.href = '/login.html';
         return null;
     }
 
@@ -114,5 +114,5 @@ async function updatePassword() {
 
 async function dangXuat() {
     await supabaseClient.auth.signOut();
-    window.location.href = 'login.html';
+    window.location.href = '/login.html';
 }
