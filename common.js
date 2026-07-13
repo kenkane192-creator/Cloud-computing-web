@@ -39,7 +39,7 @@ async function yeuCauPhien(vaiTro) {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session) {
         alert('Vui lòng đăng nhập!');
-        window.location.href = 'login.html';
+        window.location.href = 'index.html';
         return null;
     }
 
@@ -115,6 +115,6 @@ async function updatePassword() {
 async function dangXuat() {
     if (confirm("Bạn có chắc chắn muốn đăng xuất không?")) {
         await supabaseClient.auth.signOut();
-        window.location.href = 'login.html';
+        window.location.href = 'index.html';
     }
 }
