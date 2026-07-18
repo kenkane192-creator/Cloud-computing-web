@@ -568,90 +568,72 @@ async function nhapSinhVienTuExcel() {
             const workbook = XLSX.read(data, { type: 'array' });
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
-            const students = XLSX.utils.sheet_to_json(worksheet);
+            const studentsFromFile = XLSX.utils.sheet_to_json(worksheet);
 
-            if (students.length === 0) {
+            if (studentsFromFile.length === 0) {
                 throw new Error("File Excel rỗng hoặc không có dữ liệu.");
             }
 
-            msgDiv.innerHTML = `<span class="text-blue-600">Đã tìm thấy ${students.length} sinh viên. Bắt đầu quá trình nhập...</span>`;
+            msgDiv.innerHTML = `<span class="text-blue-600">Đã tìm thấy ${studentsFromFile.length} sinh viên. Đang chuẩn bị dữ liệu...</span>`;
 
-            let successCount = 0;
-            let errorCount = 0;
-            const errorMessages = [];
-            const defaultPassword = '123456';
- 
             // Helper function to normalize strings for reliable matching
             const normalizeString = (str) => {
                 if (!str) return '';
                 // Collapse multiple whitespace chars, trim, and convert to lowercase
                 return String(str).replace(/\s+/g, ' ').trim().toLowerCase();
             };
- 
+
             // Create maps for faster lookups
             const majorMap = new Map(cachedData.chuyen_nganh.map(cn => [normalizeString(cn.ten_chuyen_nganh), cn.id]));
             const classMap = new Map(cachedData.lop_hoc.map(lh => [normalizeString(lh.ten_lop), lh.id]));
-            const tam = taoSupabaseTam();
- 
-            for (const [index, student] of students.entries()) {
+
+            const studentsToImport = [];
+            const clientSideErrors = [];
+
+            for (const [index, student] of studentsFromFile.entries()) {
                 const rowNum = index + 2; // Excel row number (1-based, +1 for header)
                 const ma_sv = student.ma_sv ? String(student.ma_sv).trim() : '';
                 const ho_ten = student.ho_ten ? String(student.ho_ten).trim() : '';
- 
+
                 if (!ma_sv || !ho_ten || !student.ten_chuyen_nganh || !student.ten_lop) {
-                    errorCount++;
-                    errorMessages.push(`Dòng ${rowNum}: Thiếu thông tin (ma_sv, ho_ten, ten_chuyen_nganh, hoặc ten_lop).`);
+                    clientSideErrors.push(`Dòng ${rowNum}: Thiếu thông tin (ma_sv, ho_ten, ten_chuyen_nganh, hoặc ten_lop).`);
                     continue;
                 }
- 
+
                 const chuyen_nganh_id = majorMap.get(normalizeString(student.ten_chuyen_nganh));
                 if (!chuyen_nganh_id) {
-                    errorCount++;
-                    errorMessages.push(`Dòng ${rowNum}: Không tìm thấy chuyên ngành "${student.ten_chuyen_nganh}".`);
+                    clientSideErrors.push(`Dòng ${rowNum}: Không tìm thấy chuyên ngành "${student.ten_chuyen_nganh}".`);
                     continue;
                 }
- 
+
                 const lop_id = classMap.get(normalizeString(student.ten_lop));
                 if (!lop_id) {
-                    errorCount++;
-                    errorMessages.push(`Dòng ${rowNum}: Không tìm thấy lớp "${student.ten_lop}".`);
+                    clientSideErrors.push(`Dòng ${rowNum}: Không tìm thấy lớp "${student.ten_lop}".`);
                     continue;
                 }
-
-                const email = `${ma_sv}@student.edu.vn`;
-
-                try {
-                    const { data: authData, error: authError } = await tam.auth.signUp({ email, password: defaultPassword });
-                    if (authError) {
-                        if (authError.message.includes("User already registered")) {
-                            throw new Error(`Email '${email}' đã tồn tại.`);
-                        }
-                        throw authError;
-                    }
-
-                    if (authData.user) {
-                        const { error: profileError } = await supabaseClient
-                            .from('sinh_vien')
-                            .insert([{ ma_sv, ho_ten, email_dang_nhap: email, chuyen_nganh_id, lop_id, user_id: authData.user.id }]);
-                        
-                        if (profileError) {
-                             if (profileError.code === '23505') { // unique constraint violation
-                                throw new Error(`Mã sinh viên '${ma_sv}' đã tồn tại.`);
-                            }
-                            throw new Error('Tạo tài khoản thành công nhưng lưu hồ sơ thất bại: ' + profileError.message);
-                        }
-                    }
-                    successCount++;
-                } catch (e) {
-                    errorCount++;
-                    errorMessages.push(`Dòng ${rowNum} (${ma_sv}): ${e.message}`);
-                }
-                msgDiv.innerHTML = `<span class="text-blue-600">Đang xử lý: ${index + 1}/${students.length}...</span>`;
+                
+                studentsToImport.push({ ma_sv, ho_ten, chuyen_nganh_id, lop_id, email: `${ma_sv}@student.edu.vn` });
             }
 
-            let finalMessage = `<div class="text-left"><p class="text-green-600 font-bold">Hoàn tất! Nhập thành công: ${successCount}/${students.length}.</p>`;
-            if (errorCount > 0) {
-                finalMessage += `<p class="text-red-600 font-bold">Thất bại: ${errorCount}/${students.length}.</p><p class="mt-2 font-semibold">Chi tiết lỗi:</p><ul class="list-disc list-inside text-sm max-h-40 overflow-y-auto">${errorMessages.map(msg => `<li>${msg}</li>`).join('')}</ul>`;
+            if (clientSideErrors.length > 0) {
+                throw new Error(`Dữ liệu file không hợp lệ:\n- ${clientSideErrors.join('\n- ')}`);
+            }
+
+            msgDiv.innerHTML = `<span class="text-blue-600">Đang gửi ${studentsToImport.length} sinh viên lên server để xử lý...</span>`;
+
+            // Call the Edge Function
+            const { data: result, error: functionError } = await supabaseClient.functions.invoke('bulk-import-students', {
+                body: {
+                    students: studentsToImport,
+                    defaultPassword: '123456' // Set a default password
+                }
+            });
+
+            if (functionError) throw functionError;
+
+            let finalMessage = `<div class="text-left"><p class="text-green-600 font-bold">Hoàn tất! Nhập thành công: ${result.successCount}/${studentsFromFile.length}.</p>`;
+            if (result.errorCount > 0) {
+                finalMessage += `<p class="text-red-600 font-bold">Thất bại: ${result.errorCount}/${studentsFromFile.length}.</p><p class="mt-2 font-semibold">Chi tiết lỗi:</p><ul class="list-disc list-inside text-sm max-h-40 overflow-y-auto">${result.errors.map(msg => `<li>${msg}</li>`).join('')}</ul>`;
             }
             msgDiv.innerHTML = finalMessage + `</div>`;
 
