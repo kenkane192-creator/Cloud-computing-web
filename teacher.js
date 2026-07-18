@@ -527,7 +527,7 @@ async function exportToExcel() {
             diem.diem_cuoi_ky ?? '',
             diem.diem_so ?? ''
         ];
-        return rowData.join(',');
+        return rowData.map(escapeCsvField).join(',');
     });
 
     let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM for UTF-8

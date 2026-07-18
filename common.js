@@ -112,6 +112,16 @@ async function updatePassword() {
     }
 }
 
+function escapeCsvField(field) {
+    const value = field === null || field === undefined ? '' : String(field);
+    // If the value contains a comma, a double quote, or a newline, wrap it in double quotes.
+    if (/[",\r\n]/.test(value)) {
+        // Escape any existing double quotes by doubling them.
+        return `"${value.replace(/"/g, '""')}"`;
+    }
+    return value;
+}
+
 async function dangXuat() {
     if (confirm("Bạn có chắc chắn muốn đăng xuất không?")) {
         await supabaseClient.auth.signOut();

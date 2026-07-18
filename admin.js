@@ -219,6 +219,16 @@ function createActionButtons(id, deleteFnName, editFnName = null) {
         </div>`;
 }
 
+function generateStudentEmail() {
+    const maSV = document.getElementById('svMa').value.trim();
+    const emailInput = document.getElementById('svEmail');
+    if (maSV) {
+        emailInput.value = `${maSV}@student.edu.vn`;
+    } else {
+        emailInput.value = '';
+    }
+}
+
 // --- RENDER FUNCTIONS FOR EACH TAB ---
 
 function renderDashboard() {
@@ -437,36 +447,172 @@ async function xoaLichHoc(id) {
 
 // --- TÀI KHOẢN ---
 async function taoTaiKhoanSV() {
-    const [ma_sv, ho_ten, email, password, chuyen_nganh_id, lop_id] = 
-        ['svMa', 'svTen', 'svEmail', 'svPassword', 'svChuyenNganh', 'svLopHoc'].map(id => document.getElementById(id).value.trim());
+    const [ma_sv, ho_ten, password, chuyen_nganh_id, lop_id] =
+        ['svMa', 'svTen', 'svPassword', 'svChuyenNganh', 'svLopHoc'].map(id => document.getElementById(id).value.trim());
+
+    const email = document.getElementById('svEmail').value.trim(); // Get the auto-generated email
     const msg = document.getElementById('sv-msg');
-    
+
     try {
-        if (!ma_sv || !ho_ten || !email || !password || !chuyen_nganh_id || !lop_id) throw new Error('Vui lòng điền đầy đủ thông tin, bao gồm cả Lớp Sinh Hoạt.');
-        if (email.startsWith('admin') || email.startsWith('gv')) throw new Error('Email sinh viên không hợp lệ.');
-        
+        if (!ma_sv || !ho_ten || !password || !chuyen_nganh_id || !lop_id) {
+            throw new Error('Vui lòng điền đầy đủ thông tin, bao gồm cả Mã SV và Lớp Sinh Hoạt.');
+        }
+        if (!email) {
+            throw new Error('Email không thể để trống. Vui lòng nhập Mã sinh viên.');
+        }
+
         msg.style.color = 'blue'; msg.innerText = 'Đang tạo...';
 
         const tam = taoSupabaseTam();
         const { data: authData, error: authError } = await tam.auth.signUp({ email, password });
 
-        if (authError) throw authError;
-        
+        if (authError) {
+            if (authError.message.includes("User already registered")) {
+                throw new Error(`Lỗi: Email '${email}' (từ Mã SV) đã tồn tại. Vui lòng kiểm tra lại Mã sinh viên.`);
+            }
+            if (authError.message.includes("invalid format")) {
+                throw new Error(`Lỗi: Mã sinh viên '${ma_sv}' chứa ký tự không hợp lệ để tạo email.`);
+            }
+            throw authError;
+        }
+
         if (authData.user) {
             const { error: profileError } = await supabaseClient
                 .from('sinh_vien')
                 .insert([{ ma_sv, ho_ten, email_dang_nhap: email, chuyen_nganh_id, lop_id, user_id: authData.user.id }]);
-            if (profileError) throw new Error('Tài khoản đã tạo, nhưng lưu hồ sơ SV thất bại: ' + profileError.message);
+            if (profileError) {
+                if (profileError.code === '23505') { // unique constraint violation
+                    throw new Error(`Lỗi: Mã sinh viên '${ma_sv}' đã tồn tại trong hệ thống. (Lưu ý: một tài khoản đăng nhập có thể đã được tạo, cần xóa thủ công nếu có lỗi).`);
+                }
+                throw new Error('Tài khoản đã tạo, nhưng lưu hồ sơ SV thất bại: ' + profileError.message + '. Vui lòng xóa tài khoản đăng nhập thủ công.');
+            }
         }
 
         msg.style.color = 'green';
         msg.innerText = 'Tạo tài khoản SV thành công: ' + authData.user.email;
-        ['svMa', 'svTen', 'svEmail', 'svPassword', 'svChuyenNganh', 'svLopHoc'].forEach(id => document.getElementById(id).value = '');
+        ['svMa', 'svTen', 'svPassword', 'svEmail'].forEach(id => document.getElementById(id).value = '');
+        ['svChuyenNganh', 'svLopHoc'].forEach(id => document.getElementById(id).value = '');
         await loadAndRenderAll();
 
     } catch (e) {
         msg.style.color = 'red'; msg.innerText = e.message;
     }
+}
+
+async function nhapSinhVienTuExcel() {
+    const fileInput = document.getElementById('svExcelFile');
+    const msgDiv = document.getElementById('sv-import-msg');
+
+    if (fileInput.files.length === 0) {
+        msgDiv.innerHTML = '<span class="text-red-600">Vui lòng chọn một file Excel.</span>';
+        return;
+    }
+
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+
+    msgDiv.innerHTML = '<span class="text-blue-600">Đang đọc file...</span>';
+
+    reader.onload = async (event) => {
+        try {
+            const data = new Uint8Array(event.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const students = XLSX.utils.sheet_to_json(worksheet);
+
+            if (students.length === 0) {
+                throw new Error("File Excel rỗng hoặc không có dữ liệu.");
+            }
+
+            msgDiv.innerHTML = `<span class="text-blue-600">Đã tìm thấy ${students.length} sinh viên. Bắt đầu quá trình nhập...</span>`;
+
+            let successCount = 0;
+            let errorCount = 0;
+            const errorMessages = [];
+            const defaultPassword = '123456';
+
+            // Create maps for faster lookups
+            const majorMap = new Map(cachedData.chuyen_nganh.map(cn => [cn.ten_chuyen_nganh.toLowerCase().trim(), cn.id]));
+            const classMap = new Map(cachedData.lop_hoc.map(lh => [lh.ten_lop.toLowerCase().trim(), lh.id]));
+            const tam = taoSupabaseTam();
+
+            for (const [index, student] of students.entries()) {
+                const rowNum = index + 2; // Excel row number (1-based, +1 for header)
+                const ma_sv = student.ma_sv ? String(student.ma_sv).trim() : null;
+                const ho_ten = student.ho_ten ? String(student.ho_ten).trim() : null;
+                const ten_chuyen_nganh = student.ten_chuyen_nganh ? String(student.ten_chuyen_nganh).toLowerCase().trim() : null;
+                const ten_lop = student.ten_lop ? String(student.ten_lop).toLowerCase().trim() : null;
+
+                if (!ma_sv || !ho_ten || !ten_chuyen_nganh || !ten_lop) {
+                    errorCount++;
+                    errorMessages.push(`Dòng ${rowNum}: Thiếu thông tin (ma_sv, ho_ten, ten_chuyen_nganh, hoặc ten_lop).`);
+                    continue;
+                }
+
+                const chuyen_nganh_id = majorMap.get(ten_chuyen_nganh);
+                if (!chuyen_nganh_id) {
+                    errorCount++;
+                    errorMessages.push(`Dòng ${rowNum}: Không tìm thấy chuyên ngành "${student.ten_chuyen_nganh}".`);
+                    continue;
+                }
+
+                const lop_id = classMap.get(ten_lop);
+                if (!lop_id) {
+                    errorCount++;
+                    errorMessages.push(`Dòng ${rowNum}: Không tìm thấy lớp "${student.ten_lop}".`);
+                    continue;
+                }
+
+                const email = `${ma_sv}@student.edu.vn`;
+
+                try {
+                    const { data: authData, error: authError } = await tam.auth.signUp({ email, password: defaultPassword });
+                    if (authError) {
+                        if (authError.message.includes("User already registered")) {
+                            throw new Error(`Email '${email}' đã tồn tại.`);
+                        }
+                        throw authError;
+                    }
+
+                    if (authData.user) {
+                        const { error: profileError } = await supabaseClient
+                            .from('sinh_vien')
+                            .insert([{ ma_sv, ho_ten, email_dang_nhap: email, chuyen_nganh_id, lop_id, user_id: authData.user.id }]);
+                        
+                        if (profileError) {
+                             if (profileError.code === '23505') { // unique constraint violation
+                                throw new Error(`Mã sinh viên '${ma_sv}' đã tồn tại.`);
+                            }
+                            throw new Error('Tạo tài khoản thành công nhưng lưu hồ sơ thất bại: ' + profileError.message);
+                        }
+                    }
+                    successCount++;
+                } catch (e) {
+                    errorCount++;
+                    errorMessages.push(`Dòng ${rowNum} (${ma_sv}): ${e.message}`);
+                }
+                msgDiv.innerHTML = `<span class="text-blue-600">Đang xử lý: ${index + 1}/${students.length}...</span>`;
+            }
+
+            let finalMessage = `<div class="text-left"><p class="text-green-600 font-bold">Hoàn tất! Nhập thành công: ${successCount}/${students.length}.</p>`;
+            if (errorCount > 0) {
+                finalMessage += `<p class="text-red-600 font-bold">Thất bại: ${errorCount}/${students.length}.</p><p class="mt-2 font-semibold">Chi tiết lỗi:</p><ul class="list-disc list-inside text-sm max-h-40 overflow-y-auto">${errorMessages.map(msg => `<li>${msg}</li>`).join('')}</ul>`;
+            }
+            msgDiv.innerHTML = finalMessage + `</div>`;
+
+            await loadAndRenderAll();
+
+        } catch (e) {
+            msgDiv.innerHTML = `<span class="text-red-600">Lỗi xử lý file: ${e.message}</span>`;
+        }
+    };
+
+    reader.onerror = () => {
+        msgDiv.innerHTML = '<span class="text-red-600">Không thể đọc file.</span>';
+    };
+
+    reader.readAsArrayBuffer(file);
 }
 
 async function taoTaiKhoanGV() {
@@ -750,7 +896,7 @@ async function exportApprovedGrades(monHocId, lopId) {
             diem.diem_cuoi_ky ?? '',
             diem.diem_so ?? ''
         ];
-        return rowData.join(',');
+        return rowData.map(escapeCsvField).join(',');
     });
 
     let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM for UTF-8
