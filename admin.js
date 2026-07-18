@@ -18,20 +18,19 @@ let cachedData = {
     lop_hoc: [],
     lich_hoc: [],
     combinedUsers: [],
-    submissions: []
+    submissions: [],
 };
+const loadedData = new Set(); // Tracks which data types have been loaded
 let studentChart = null; // To hold chart instance
 
 // --- INITIALIZATION ---
 window.onload = async function() {
     const session = await yeuCauPhien('admin');
     if (!session) return;
-    
+
     setupTabs();
-    await loadAndRenderAll(); // New master function
-    
-    // Default to the first tab
-    showTab(TABS[0].id); 
+    // Start by showing the first tab, which will trigger its own data loading.
+    showTab(TABS[0].id);
 };
 
 // --- UI SETUP ---
@@ -52,7 +51,7 @@ function setupTabs() {
     });
 }
 
-function showTab(tabId) {
+async function showTab(tabId) {
     // 1. Hide all tab content panels
     document.querySelectorAll('.tab-content').forEach(content => {
         content.classList.remove('active');
@@ -80,59 +79,92 @@ function showTab(tabId) {
         activeButton.classList.add('bg-blue-100', 'text-blue-700', 'font-semibold');
     }
 
-    // Refresh dashboard every time it's viewed
-    if (tabId === 'dashboard') {
-        renderDashboard();
+    // Lazy load data based on the selected tab
+    try {
+        switch (tabId) {
+            case 'dashboard':
+                await ensureDataLoaded(['chuyen_nganh', 'mon_hoc', 'sinh_vien', 'giang_vien']);
+                renderDashboard();
+                break;
+            case 'tai-khoan':
+                await ensureDataLoaded(['giang_vien', 'sinh_vien', 'chuyen_nganh', 'lop_hoc']);
+                populateAllDropdowns();
+                renderTaiKhoanTabs();
+                break;
+            case 'chuyen-nganh':
+                await ensureDataLoaded(['chuyen_nganh']);
+                renderChuyenNganhTab();
+                break;
+            case 'mon-hoc':
+                await ensureDataLoaded(['mon_hoc', 'chuyen_nganh']);
+                populateAllDropdowns();
+                renderMonHocTab();
+                break;
+            case 'lop-hoc':
+                await ensureDataLoaded(['lop_hoc', 'chuyen_nganh']);
+                populateAllDropdowns();
+                renderLopHocTab();
+                break;
+            case 'lich-hoc':
+                await ensureDataLoaded(['lich_hoc', 'mon_hoc', 'lop_hoc', 'giang_vien']);
+                populateAllDropdowns();
+                renderLichHocTab();
+                break;
+            case 'duyet-diem':
+                await ensureDataLoaded(['submissions', 'mon_hoc', 'lop_hoc']);
+                renderDuyetDiemTab();
+                break;
+            case 'sinh-vien':
+                await ensureDataLoaded(['sinh_vien', 'chuyen_nganh', 'lop_hoc']);
+                populateAllDropdowns();
+                renderTaiKhoanTabs();
+                break;
+            case 'giang-vien':
+                await ensureDataLoaded(['giang_vien', 'chuyen_nganh']);
+                populateAllDropdowns();
+                renderTaiKhoanTabs();
+                break;
+        }
+    } catch (e) {
+        console.error(`Error loading data for tab ${tabId}:`, e);
+        // Error is already displayed by hienLoiApi inside ensureDataLoaded
     }
 }
 
 // --- MASTER DATA HANDLING ---
-async function loadAndRenderAll() {
-    const [
-        { data: chuyenNganhData, error: cnError },
-        { data: monHocData, error: mhError },
-        { data: lopHocData, error: lhError },
-        { data: giangVienData, error: gvError },
-        { data: sinhVienData, error: svError },
-        { data: lichHocData, error: lichError },
-        { data: submissionData, error: submissionError }
-    ] = await Promise.all([
-        supabaseClient.from('chuyen_nganh').select('*').order('id', { ascending: true }),
-        supabaseClient.from('mon_hoc').select('*, chuyen_nganh(ten_chuyen_nganh)').order('id', { ascending: true }),
-        supabaseClient.from('lop_hoc').select('*, chuyen_nganh(ten_chuyen_nganh)').order('id', { ascending: true }),
-        supabaseClient.from('giang_vien').select('*, chuyen_nganh(ten_chuyen_nganh)').order('id', { ascending: true }),
-        supabaseClient.from('sinh_vien').select('*, chuyen_nganh(ten_chuyen_nganh), lop_hoc(ten_lop)').order('id', { ascending: true }),
-        supabaseClient.from('lich_hoc').select('*, mon_hoc(ten_mon), lop_hoc(ten_lop), giang_vien(ho_ten)').order('id', { ascending: true }),
-        supabaseClient.from('bang_diem_submission').select('*, mon_hoc(ten_mon), lop_hoc(ten_lop), giang_vien(ho_ten)').order('ngay_gui', { ascending: false })
-    ]);
+async function ensureDataLoaded(types = []) {
+    const typesToLoad = types.filter(t => !loadedData.has(t));
+    if (typesToLoad.length === 0) return;
 
-    // Handle potential errors
-    if (cnError) return hienLoiApi(cnError, 'tải chuyên ngành');
-    if (mhError) return hienLoiApi(mhError, 'tải môn học');
-    if (lhError) return hienLoiApi(lhError, 'tải lớp học');
-    if (gvError) return hienLoiApi(gvError, 'tải giảng viên');
-    if (svError) return hienLoiApi(svError, 'tải sinh viên');
-    if (lichError) return hienLoiApi(lichError, 'tải lịch học');
-    if (submissionError) return hienLoiApi(submissionError, 'tải bảng điểm đã nộp');
+    const promises = {};
+    if (typesToLoad.includes('chuyen_nganh')) promises.chuyen_nganh = supabaseClient.from('chuyen_nganh').select('*').order('id', { ascending: true });
+    if (typesToLoad.includes('mon_hoc')) promises.mon_hoc = supabaseClient.from('mon_hoc').select('*, chuyen_nganh(ten_chuyen_nganh)').order('id', { ascending: true });
+    if (typesToLoad.includes('lop_hoc')) promises.lop_hoc = supabaseClient.from('lop_hoc').select('*, chuyen_nganh(ten_chuyen_nganh)').order('id', { ascending: true });
+    if (typesToLoad.includes('giang_vien')) promises.giang_vien = supabaseClient.from('giang_vien').select('*, chuyen_nganh(ten_chuyen_nganh)').order('id', { ascending: true });
+    if (typesToLoad.includes('sinh_vien')) promises.sinh_vien = supabaseClient.from('sinh_vien').select('*, chuyen_nganh(ten_chuyen_nganh), lop_hoc(ten_lop)').order('id', { ascending: true });
+    if (typesToLoad.includes('lich_hoc')) promises.lich_hoc = supabaseClient.from('lich_hoc').select('*, mon_hoc(ten_mon), lop_hoc(ten_lop), giang_vien(ho_ten)').order('id', { ascending: true });
+    if (typesToLoad.includes('submissions')) promises.submissions = supabaseClient.from('bang_diem_submission').select('*, mon_hoc(ten_mon), lop_hoc(ten_lop), giang_vien(ho_ten)').order('ngay_gui', { ascending: false });
 
-    // Cache all data
-    cachedData.chuyen_nganh = chuyenNganhData || [];
-    cachedData.mon_hoc = monHocData || [];
-    cachedData.lop_hoc = lopHocData || [];
-    cachedData.giang_vien = giangVienData || [];
-    cachedData.sinh_vien = sinhVienData || [];
-    cachedData.lich_hoc = lichHocData || [];
-    cachedData.submissions = submissionData || [];
+    const promiseKeys = Object.keys(promises);
+    if (promiseKeys.length === 0) return;
 
-    // Populate UI components with cached data
-    populateAllDropdowns();
-    renderChuyenNganhTab();
-    renderMonHocTab();
-    renderLopHocTab();
-    renderLichHocTab();
-    renderTaiKhoanTabs();
-    renderDuyetDiemTab();
-    renderDashboard();
+    const results = await Promise.all(Object.values(promises));
+
+    for (let i = 0; i < results.length; i++) {
+        const key = promiseKeys[i];
+        const { data, error } = results[i];
+        if (error) {
+            hienLoiApi(error, `tải ${key}`);
+            throw new Error(`Failed to load ${key}`);
+        }
+        cachedData[key] = data || [];
+        loadedData.add(key);
+    }
+}
+
+async function reloadData(types = []) {
+    types.forEach(t => loadedData.delete(t));
+    await ensureDataLoaded(types);
 }
 
 function populateAllDropdowns() {
@@ -316,14 +348,18 @@ async function themChuyenNganh() {
     const { error } = await supabaseClient.from('chuyen_nganh').insert([{ ten_chuyen_nganh: ten }]);
     if (error) return alert('Lỗi: ' + error.message);
     document.getElementById('tenChuyenNganh').value = '';
-    await loadAndRenderAll();
+    await reloadData(['chuyen_nganh']);
+    renderChuyenNganhTab();
+    populateAllDropdowns();
 }
 
 async function xoaChuyenNganh(id) {
     if (!confirm(`Bạn có chắc chắn muốn xóa chuyên ngành có ID=${id}? CẢNH BÁO: Hành động này sẽ xóa tất cả Môn học và Lớp học thuộc chuyên ngành này. Không thể hoàn tác.`)) return;
     const { error } = await supabaseClient.from('chuyen_nganh').delete().eq('id', id);
     if (error) return alert('Lỗi: ' + error.message);
-    await loadAndRenderAll();
+    // Clear all caches as this is a major destructive action with cascades
+    loadedData.clear();
+    await showTab('chuyen_nganh'); // Reload current tab
 }
 
 // --- MÔN HỌC ---
@@ -349,14 +385,19 @@ async function themMonHoc() {
     
     document.getElementById('tenMonHoc').value = '';
     document.getElementById('monHocChuyenNganh').value = '';
-    await loadAndRenderAll();
+    await reloadData(['mon_hoc']);
+    renderMonHocTab();
+    populateAllDropdowns();
 }
 
 async function xoaMonHoc(id) {
     if (!confirm(`Bạn có chắc chắn muốn xóa môn học có ID=${id}? Hành động này sẽ xóa toàn bộ lịch học và điểm số liên quan đến môn này.`)) return;
     const { error } = await supabaseClient.from('mon_hoc').delete().eq('id', id);
     if (error) return alert('Lỗi: ' + error.message);
-    await loadAndRenderAll();
+    // Clear caches that depend on mon_hoc
+    loadedData.delete('mon_hoc');
+    loadedData.delete('lich_hoc');
+    await showTab('mon-hoc');
 }
 
 // --- LỚP HỌC (LỚP SINH HOẠT) ---
@@ -382,14 +423,19 @@ async function themLopHoc() {
     if (error) return alert('Lỗi: ' + error.message);
     
     document.getElementById('tenLopHoc').value = '';
-    await loadAndRenderAll();
+    await reloadData(['lop_hoc']);
+    renderLopHocTab();
+    populateAllDropdowns();
 }
 
 async function xoaLopHoc(id) {
     if (!confirm(`Bạn có chắc chắn muốn xóa lớp học có ID=${id}? Hành động này sẽ xóa các lịch học liên quan và gỡ sinh viên khỏi lớp.`)) return;
     const { error } = await supabaseClient.from('lop_hoc').delete().eq('id', id);
     if (error) return alert('Lỗi: ' + error.message);
-    await loadAndRenderAll();
+    loadedData.delete('lop_hoc');
+    loadedData.delete('lich_hoc');
+    loadedData.delete('sinh_vien');
+    await showTab('lop-hoc');
 }
 
 // --- LỊCH HỌC ---
@@ -435,14 +481,16 @@ async function themLichHoc() {
         if (error.code === '23505') return alert('Lỗi: Lịch học bị trùng! Giảng viên hoặc Lớp đã có lịch vào thời điểm này.');
         return alert('Lỗi: ' + error.message);
     }
-    await loadAndRenderAll();
+    await reloadData(['lich_hoc']);
+    renderLichHocTab();
 }
 
 async function xoaLichHoc(id) {
     if (!confirm(`Bạn có chắc chắn muốn xóa lịch học có ID=${id}?`)) return;
     const { error } = await supabaseClient.from('lich_hoc').delete().eq('id', id);
     if (error) return alert('Lỗi: ' + error.message);
-    await loadAndRenderAll();
+    await reloadData(['lich_hoc']);
+    renderLichHocTab();
 }
 
 // --- TÀI KHOẢN ---
@@ -492,7 +540,8 @@ async function taoTaiKhoanSV() {
         msg.innerText = 'Tạo tài khoản SV thành công: ' + authData.user.email;
         ['svMa', 'svTen', 'svPassword', 'svEmail'].forEach(id => document.getElementById(id).value = '');
         ['svChuyenNganh', 'svLopHoc'].forEach(id => document.getElementById(id).value = '');
-        await loadAndRenderAll();
+        await reloadData(['sinh_vien']);
+        renderTaiKhoanTabs();
 
     } catch (e) {
         msg.style.color = 'red'; msg.innerText = e.message;
@@ -531,33 +580,38 @@ async function nhapSinhVienTuExcel() {
             let errorCount = 0;
             const errorMessages = [];
             const defaultPassword = '123456';
-
+ 
+            // Helper function to normalize strings for reliable matching
+            const normalizeString = (str) => {
+                if (!str) return '';
+                // Collapse multiple whitespace chars, trim, and convert to lowercase
+                return String(str).replace(/\s+/g, ' ').trim().toLowerCase();
+            };
+ 
             // Create maps for faster lookups
-            const majorMap = new Map(cachedData.chuyen_nganh.map(cn => [cn.ten_chuyen_nganh.toLowerCase().trim(), cn.id]));
-            const classMap = new Map(cachedData.lop_hoc.map(lh => [lh.ten_lop.toLowerCase().trim(), lh.id]));
+            const majorMap = new Map(cachedData.chuyen_nganh.map(cn => [normalizeString(cn.ten_chuyen_nganh), cn.id]));
+            const classMap = new Map(cachedData.lop_hoc.map(lh => [normalizeString(lh.ten_lop), lh.id]));
             const tam = taoSupabaseTam();
-
+ 
             for (const [index, student] of students.entries()) {
                 const rowNum = index + 2; // Excel row number (1-based, +1 for header)
-                const ma_sv = student.ma_sv ? String(student.ma_sv).trim() : null;
-                const ho_ten = student.ho_ten ? String(student.ho_ten).trim() : null;
-                const ten_chuyen_nganh = student.ten_chuyen_nganh ? String(student.ten_chuyen_nganh).toLowerCase().trim() : null;
-                const ten_lop = student.ten_lop ? String(student.ten_lop).toLowerCase().trim() : null;
-
-                if (!ma_sv || !ho_ten || !ten_chuyen_nganh || !ten_lop) {
+                const ma_sv = student.ma_sv ? String(student.ma_sv).trim() : '';
+                const ho_ten = student.ho_ten ? String(student.ho_ten).trim() : '';
+ 
+                if (!ma_sv || !ho_ten || !student.ten_chuyen_nganh || !student.ten_lop) {
                     errorCount++;
                     errorMessages.push(`Dòng ${rowNum}: Thiếu thông tin (ma_sv, ho_ten, ten_chuyen_nganh, hoặc ten_lop).`);
                     continue;
                 }
-
-                const chuyen_nganh_id = majorMap.get(ten_chuyen_nganh);
+ 
+                const chuyen_nganh_id = majorMap.get(normalizeString(student.ten_chuyen_nganh));
                 if (!chuyen_nganh_id) {
                     errorCount++;
                     errorMessages.push(`Dòng ${rowNum}: Không tìm thấy chuyên ngành "${student.ten_chuyen_nganh}".`);
                     continue;
                 }
-
-                const lop_id = classMap.get(ten_lop);
+ 
+                const lop_id = classMap.get(normalizeString(student.ten_lop));
                 if (!lop_id) {
                     errorCount++;
                     errorMessages.push(`Dòng ${rowNum}: Không tìm thấy lớp "${student.ten_lop}".`);
@@ -601,7 +655,8 @@ async function nhapSinhVienTuExcel() {
             }
             msgDiv.innerHTML = finalMessage + `</div>`;
 
-            await loadAndRenderAll();
+            loadedData.clear();
+            await showTab('sinh-vien');
 
         } catch (e) {
             msgDiv.innerHTML = `<span class="text-red-600">Lỗi xử lý file: ${e.message}</span>`;
@@ -640,7 +695,8 @@ async function taoTaiKhoanGV() {
         msg.style.color = 'green';
         msg.innerText = 'Tạo tài khoản GV thành công: ' + authData.user.email;
          ['gvHoTen', 'gvEmail', 'gvPassword', 'gvChuyenNganh'].forEach(id => document.getElementById(id).value = '');
-        await loadAndRenderAll();
+        await reloadData(['giang_vien']);
+        renderTaiKhoanTabs();
 
     } catch (e) {
         msg.style.color = 'red'; msg.innerText = e.message;
@@ -755,7 +811,9 @@ async function xoaSinhVien(id) {
     if (!confirm(`Bạn có chắc muốn xóa sinh viên có ID=${id}? Hành động này sẽ xóa vĩnh viễn cả hồ sơ và tài khoản đăng nhập của họ.`)) return;
     const { error } = await supabaseClient.from('sinh_vien').delete().eq('id', id);
     if (error) return alert(`Lỗi: ${error.message}`);
-    await loadAndRenderAll();
+    // Reload data for the user management tab
+    loadedData.clear();
+    await showTab('tai-khoan');
 }
 
 // --- STUDENT EDIT MODAL ---
@@ -809,7 +867,8 @@ async function luuThayDoiSinhVien() {
 
     alert('Cập nhật thông tin sinh viên thành công!');
     closeEditStudentModal();
-    await loadAndRenderAll(); // Refresh data
+    await reloadData(['sinh_vien']);
+    renderTaiKhoanTabs();
 }
 
 // --- APPROVAL MODAL ---
@@ -859,7 +918,8 @@ async function approveSubmission(monHocId, lopId) {
 
     alert('Duyệt bảng điểm thành công!');
     closeApprovalModal();
-    await loadAndRenderAll(); // Refresh all data
+    await reloadData(['submissions']);
+    renderDuyetDiemTab();
 }
 
 // --- EXPORT FUNCTION ---
@@ -1008,12 +1068,16 @@ async function saveRosterChanges() {
 
     alert('Cập nhật sĩ số lớp thành công!');
     closeRosterModal();
-    await loadAndRenderAll();
+    // Reload student data and re-render the schedule tab
+    loadedData.clear();
+    await showTab('lich-hoc');
 }
 
 async function xoaGiangVien(id) {
     if (!confirm(`Bạn có chắc muốn xóa giảng viên có ID=${id}? Hành động này sẽ xóa vĩnh viễn hồ sơ, tài khoản đăng nhập và toàn bộ lịch dạy của họ.`)) return;
     const { error } = await supabaseClient.from('giang_vien').delete().eq('id', id);
     if (error) return alert(`Lỗi: ${error.message}`);
-    await loadAndRenderAll();
+    // Reload data for the user management tab
+    loadedData.clear();
+    await showTab('tai-khoan');
 }
