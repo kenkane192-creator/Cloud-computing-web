@@ -579,8 +579,8 @@ async function nhapSinhVienTuExcel() {
             // Helper function to normalize strings for reliable matching
             const normalizeString = (str) => {
                 if (!str) return '';
-                // Collapse multiple whitespace chars, trim, and convert to lowercase
-                return String(str).replace(/\s+/g, ' ').trim().toLowerCase();
+                // Normalize Unicode, collapse multiple whitespace chars, trim, and convert to lowercase
+                return String(str).normalize('NFC').replace(/\s+/g, ' ').trim().toLowerCase();
             };
 
             // Create maps for faster lookups
