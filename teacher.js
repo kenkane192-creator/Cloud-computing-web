@@ -527,11 +527,11 @@ async function exportToExcel() {
             diem.diem_cuoi_ky ?? '',
             diem.diem_so ?? ''
         ];
-        return rowData.map(escapeCsvField).join(',');
+        return rowData.map(escapeCsvField).join(';');
     });
 
     let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM for UTF-8
-    csvContent += headers.join(',') + '\r\n';
+    csvContent += headers.join(';') + '\r\n';
     csvContent += rows.join('\r\n');
 
     // 4. Trigger download
