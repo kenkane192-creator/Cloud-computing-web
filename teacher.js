@@ -546,18 +546,28 @@ async function exportToExcel() {
 
 // --- CÀI ĐẶT (PROFILE SETTINGS) MODAL ---
 async function loadTeacherProfile(userId) {
-    const { data, error } = await supabaseClient
+    const { data: profiles, error } = await supabaseClient
         .from('giang_vien')
         .select(`id, ho_ten, email_dang_nhap, chuyen_nganh(ten_chuyen_nganh)`)
-        .eq('user_id', userId)
-        .single();
+        .eq('user_id', userId);
 
     if (error) {
         hienLoiApi(error, 'tải thông tin giảng viên');
         return;
     }
-    
-    currentTeacherId = data.id; // Set the global teacher ID for other functions
+
+    if (!profiles || profiles.length === 0) {
+        hienLoiApi({ message: "Không tìm thấy hồ sơ giảng viên nào được liên kết với tài khoản của bạn." }, 'tải thông tin giảng viên');
+        return;
+    }
+
+    if (profiles.length > 1) {
+        hienLoiApi({ message: "Tìm thấy nhiều hồ sơ giảng viên được liên kết với tài khoản của bạn. Vui lòng liên hệ Admin." }, 'tải thông tin giảng viên');
+        return;
+    }
+
+    const data = profiles[0];
+    currentTeacherId = data.id;
     populateProfileModal(data, 'gv');
 }
 

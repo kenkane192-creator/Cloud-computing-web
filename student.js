@@ -88,20 +88,33 @@ function showTab(tabId) {
 
 // --- DATA LOADING ---
 async function loadStudentProfile(user) {
-    const { data: sinh_vien, error } = await supabaseClient
+    const { data, error } = await supabaseClient
         .from('sinh_vien')
         .select(`
             *,
             chuyen_nganh ( ten_chuyen_nganh ), lop_hoc ( ten_lop )
         `)
-        .eq('user_id', user.id)
-        .single();
+        .eq('user_id', user.id);
 
     if (error) {
         hienLoiApi(error, 'tải hồ sơ sinh viên');
         document.getElementById('txtWelcome').innerText = `Tài khoản: ${user.email}`;
         return;
     }
+
+    if (!data || data.length === 0) {
+        hienLoiApi({ message: "Không tìm thấy hồ sơ sinh viên cho tài khoản này. Nếu bạn là giảng viên hoặc admin, vui lòng truy cập đúng trang." }, 'tải hồ sơ sinh viên');
+        document.getElementById('txtWelcome').innerText = `Tài khoản: ${user.email} (Không phải sinh viên)`;
+        return;
+    }
+
+    if (data.length > 1) {
+        hienLoiApi({ message: "Tìm thấy nhiều hơn một hồ sơ sinh viên. Vui lòng liên hệ Admin." }, 'tải hồ sơ sinh viên');
+        document.getElementById('txtWelcome').innerText = `Tài khoản: ${user.email} (Lỗi dữ liệu)`;
+        return;
+    }
+
+    const sinh_vien = data[0];
 
     if (!sinh_vien) {
         document.getElementById('txtWelcome').innerText = `Tài khoản: ${user.email} (Chưa có hồ sơ — liên hệ Admin)`;
