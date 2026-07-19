@@ -176,10 +176,34 @@ async function updateStudentProfile() {
     document.getElementById('profileAvatar').src = updates.anh_dai_dien_url || 'https://via.placeholder.com/96';
 }
 
+function convertDiemSoToThang4(diem) {
+    if (diem === null || diem === undefined) return '';
+    if (diem < 4.0) return '0.0';
+    if (diem < 5.0) return '1.0'; // D
+    if (diem < 5.5) return '1.5'; // D+
+    if (diem < 6.5) return '2.0'; // C
+    if (diem < 7.0) return '2.5'; // C+
+    if (diem < 8.0) return '3.0'; // B
+    if (diem < 8.5) return '3.5'; // B+
+    return '4.0'; // A
+}
+
+function convertDiemSoToChu(diem) {
+    if (diem === null || diem === undefined) return '';
+    if (diem < 4.0) return 'F';
+    if (diem < 5.0) return 'D';
+    if (diem < 5.5) return 'D+';
+    if (diem < 6.5) return 'C';
+    if (diem < 7.0) return 'C+';
+    if (diem < 8.0) return 'B';
+    if (diem < 8.5) return 'B+';
+    return 'A';
+}
+
 async function taiBangDiem(sinhVienId) {
     const { data: diem, error } = await supabaseClient
         .from('diem')
-        .select('diem_so, mon_hoc ( id, ten_mon )')
+        .select('diem_chuyen_can, diem_giua_ky, diem_cuoi_ky, diem_so, mon_hoc ( id, ten_mon )')
         .eq('sinh_vien_id', sinhVienId);
 
     if (error) return hienLoiApi(error, 'tải điểm');
@@ -187,19 +211,29 @@ async function taiBangDiem(sinhVienId) {
 
     const tbody = document.getElementById('tblDiem');
     if (!diem || diem.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-gray-500">Chưa có dữ liệu điểm số.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-gray-500">Chưa có dữ liệu điểm số.</td></tr>`;
         return;
     }
     
     let html = '';
     diem.forEach(d => {
-        const isPass = d.diem_so >= 5;
-        const xepLoai = isPass 
-            ? `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Đạt</span>`
-            : `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Học lại</span>`;
+        const xepLoai = d.diem_so !== null 
+            ? (d.diem_so >= 5
+                ? `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Đạt</span>`
+                : `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Học lại</span>`)
+            : `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Chưa có</span>`;
+
+        const diemChu = convertDiemSoToChu(d.diem_so);
+        const diemThang4 = convertDiemSoToThang4(d.diem_so);
+
         html += `<tr class="border-b border-gray-200 hover:bg-gray-50">
             <td class="py-3 px-6 text-left whitespace-nowrap font-medium">${d.mon_hoc.ten_mon}</td>
-            <td class="py-3 px-6 text-center font-semibold">${d.diem_so}</td>
+            <td class="py-3 px-6 text-center">${d.diem_chuyen_can ?? 'N/A'}</td>
+            <td class="py-3 px-6 text-center">${d.diem_giua_ky ?? 'N/A'}</td>
+            <td class="py-3 px-6 text-center">${d.diem_cuoi_ky ?? 'N/A'}</td>
+            <td class="py-3 px-6 text-center font-semibold">${d.diem_so ?? 'N/A'}</td>
+            <td class="py-3 px-6 text-center">${diemChu}</td>
+            <td class="py-3 px-6 text-center">${diemThang4}</td>
             <td class="py-3 px-6 text-center">${xepLoai}</td>
         </tr>`;
     });
