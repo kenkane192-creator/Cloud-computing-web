@@ -722,12 +722,18 @@ function renderTaiKhoanTabs() {
 }
 
 function renderCombinedUserTable() {
-    const search = document.getElementById('userSearchInput').value.toLowerCase();
+    const normalizeString = (str) => {
+        if (!str) return '';
+        // Normalize Unicode, collapse multiple whitespace chars, trim, and convert to lowercase
+        return String(str).normalize('NFC').replace(/\s+/g, ' ').trim().toLowerCase();
+    };
+
+    const search = normalizeString(document.getElementById('userSearchInput').value);
     const cnFilter = document.getElementById('userChuyenNganhFilter').value;
     const roleFilter = document.getElementById('userRoleFilter').value;
 
     const filteredUsers = cachedData.combinedUsers.filter(user => {
-        const matchesSearch = search === '' || user.ho_ten.toLowerCase().includes(search) || user.ma_so.toLowerCase().includes(search) || user.email.toLowerCase().includes(search);
+        const matchesSearch = search === '' || normalizeString(user.ho_ten).includes(search) || normalizeString(user.ma_so).includes(search) || normalizeString(user.email).includes(search);
         const matchesCn = cnFilter === '' || user.chuyen_nganh_id == cnFilter;
         const matchesRole = roleFilter === '' || user.vai_tro === roleFilter;
         return matchesSearch && matchesCn && matchesRole;
